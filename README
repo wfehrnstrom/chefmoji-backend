@@ -1,1 +1,2 @@
-Hello World!
+This project requires that docker, python3.8 >=, pip, make and curl be pre-installed
+Install those, then run 'make install'
