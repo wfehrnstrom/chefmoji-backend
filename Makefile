@@ -14,3 +14,6 @@ dev:
 prod:
 	docker build . -t chefmoji
 	docker run chefmoji
+
+clean:
+	rm -r *.pyc
