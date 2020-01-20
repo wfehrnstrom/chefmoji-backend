@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+message SignUpConfirmation {
+    string password = 1;
+    bool email = 2;
+    enum UsernameCode {
+        good = 0;
+        unique = 1;
+        length = 2;
+    }
+    UsernameCode username = 3;
+}
