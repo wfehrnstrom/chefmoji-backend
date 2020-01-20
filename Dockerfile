@@ -21,9 +21,12 @@ RUN rm README
 
 ## Add a default user so we don't run as root and change the directories created
 #  to be owned by this user
-# RUN addgroup -S che && adduser -S bmapsdev -G bmaps
-# RUN chown -R :bmaps /app /tmp
-
+RUN addgroup -S chefteam && adduser -S chefdev -G chefteam
+RUN chown -R chefdev:chefteam /app /tmp /etc/nginx /etc/uwsgi /var/tmp/nginx /var/lib/nginx /var/log/nginx /var/run/nginx.pid 
+RUN chmod -R ug=rwx /etc/nginx /etc/uwsgi /var/tmp/nginx /var/lib/nginx 
+RUN chmod -R 755 /var/log/nginx /var/run/nginx.pid
+RUN chmod ugoa=r /etc/supervisord.conf /etc/nginx/nginx.conf /etc/uwsgi/chefmoji.ini
+RUN chmod -R ug+rwx /app
 ENV FLASK_ENV=production
 
 EXPOSE 5000

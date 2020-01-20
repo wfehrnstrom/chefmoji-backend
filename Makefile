@@ -1,4 +1,6 @@
 INSTALL_SCRIPTS_DIR=scripts
+SERVER_PORT=5000
+
 
 install:
 	pip install virtualenvwrapper
@@ -13,7 +15,7 @@ dev:
 
 prod:
 	docker build . -t chefmoji
-	docker run chefmoji
+	docker run -p $(SERVER_PORT):$(SERVER_PORT) chefmoji
 
 clean:
 	rm -r *.pyc
