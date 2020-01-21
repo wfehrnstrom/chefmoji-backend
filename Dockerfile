@@ -2,11 +2,6 @@ FROM python:alpine3.10 AS base
 
 RUN apk add gcc libc-dev linux-headers supervisor nginx
 RUN pip install uwsgi
-COPY src/requirements.txt /tmp
-RUN pip install -r /tmp/requirements.txt
-COPY nginx/conf/nginx.conf /etc/nginx/nginx.conf
-COPY uwsgi/conf/chefmoji.ini /etc/uwsgi/chefmoji.ini
-COPY supervisord/conf/supervisord.conf /etc/supervisord.conf
 
 ## need to pre-initialize to stop problems finding nginx pid correctly on startup
 RUN touch /var/run/nginx.pid
@@ -18,6 +13,12 @@ RUN rm -rf /usr/share/nginx/html/*
 WORKDIR /app
 COPY . .
 RUN rm README
+
+COPY src/requirements.txt /tmp
+RUN pip install -r /tmp/requirements.txt
+COPY nginx/conf/nginx.conf /etc/nginx/nginx.conf
+COPY uwsgi/conf/chefmoji.ini /etc/uwsgi/chefmoji.ini
+COPY supervisord/conf/supervisord.conf /etc/supervisord.conf
 
 ## Add a default user so we don't run as root and change the directories created
 #  to be owned by this user
