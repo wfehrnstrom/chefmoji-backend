@@ -1,0 +1,11 @@
+#!/bin/bash
+
+STARTUP_FILES=(.bashrc .bash_profile .profile)
+
+for file in ${STARTUP_FILES[*]}
+do
+    echo "Preinitializing for $HOME/$file"
+    echo 'export WORKON_HOME=$HOME/.virtualenvs' >> $HOME/$file
+    echo 'export PROJECT_HOME=$HOME/Devel' >> $HOME/$file
+    echo 'source /usr/local/bin/virtualenvwrapper.sh' >> $HOME/$file
+done
