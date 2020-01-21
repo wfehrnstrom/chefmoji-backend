@@ -1,12 +1,13 @@
 syntax = "proto3";
 
 message SignUpConfirmation {
-    string password = 1;
-    bool email = 2;
-    enum UsernameCode {
+    bool success = 1;
+    enum ErrorCode {
         good = 0;
-        unique = 1;
-        length = 2;
+        notunique = 1;
+        notclean = 2;
+        notvalid = 3;
     }
-    UsernameCode username = 3;
+    ErrorCode email = 2;
+    ErrorCode playerid = 3;
 }
