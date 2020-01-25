@@ -18,14 +18,14 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n$protocol_buffers/signupconfirm.proto\"\x9b\x01\n\x12SignUpConfirmation\x12\x10\n\x08password\x18\x01 \x01(\t\x12\r\n\x05\x65mail\x18\x02 \x01(\x08\x12\x32\n\x08username\x18\x03 \x01(\x0e\x32 .SignUpConfirmation.UsernameCode\"0\n\x0cUsernameCode\x12\x08\n\x04good\x10\x00\x12\n\n\x06unique\x10\x01\x12\n\n\x06length\x10\x02\x62\x06proto3'
+  serialized_pb=b'\n$protocol_buffers/signupconfirm.proto\"\xc6\x01\n\x12SignUpConfirmation\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12,\n\x05\x65mail\x18\x02 \x01(\x0e\x32\x1d.SignUpConfirmation.ErrorCode\x12/\n\x08playerid\x18\x03 \x01(\x0e\x32\x1d.SignUpConfirmation.ErrorCode\"@\n\tErrorCode\x12\x08\n\x04good\x10\x00\x12\r\n\tnotunique\x10\x01\x12\x0c\n\x08notclean\x10\x02\x12\x0c\n\x08notvalid\x10\x03\x62\x06proto3'
 )
 
 
 
-_SIGNUPCONFIRMATION_USERNAMECODE = _descriptor.EnumDescriptor(
-  name='UsernameCode',
-  full_name='SignUpConfirmation.UsernameCode',
+_SIGNUPCONFIRMATION_ERRORCODE = _descriptor.EnumDescriptor(
+  name='ErrorCode',
+  full_name='SignUpConfirmation.ErrorCode',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -34,20 +34,24 @@ _SIGNUPCONFIRMATION_USERNAMECODE = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='unique', index=1, number=1,
+      name='notunique', index=1, number=1,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='length', index=2, number=2,
+      name='notclean', index=2, number=2,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='notvalid', index=3, number=3,
       serialized_options=None,
       type=None),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=148,
-  serialized_end=196,
+  serialized_start=175,
+  serialized_end=239,
 )
-_sym_db.RegisterEnumDescriptor(_SIGNUPCONFIRMATION_USERNAMECODE)
+_sym_db.RegisterEnumDescriptor(_SIGNUPCONFIRMATION_ERRORCODE)
 
 
 _SIGNUPCONFIRMATION = _descriptor.Descriptor(
@@ -58,21 +62,21 @@ _SIGNUPCONFIRMATION = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='password', full_name='SignUpConfirmation.password', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='email', full_name='SignUpConfirmation.email', index=1,
-      number=2, type=8, cpp_type=7, label=1,
+      name='success', full_name='SignUpConfirmation.success', index=0,
+      number=1, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='username', full_name='SignUpConfirmation.username', index=2,
+      name='email', full_name='SignUpConfirmation.email', index=1,
+      number=2, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='playerid', full_name='SignUpConfirmation.playerid', index=2,
       number=3, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -83,7 +87,7 @@ _SIGNUPCONFIRMATION = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _SIGNUPCONFIRMATION_USERNAMECODE,
+    _SIGNUPCONFIRMATION_ERRORCODE,
   ],
   serialized_options=None,
   is_extendable=False,
@@ -92,11 +96,12 @@ _SIGNUPCONFIRMATION = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=41,
-  serialized_end=196,
+  serialized_end=239,
 )
 
-_SIGNUPCONFIRMATION.fields_by_name['username'].enum_type = _SIGNUPCONFIRMATION_USERNAMECODE
-_SIGNUPCONFIRMATION_USERNAMECODE.containing_type = _SIGNUPCONFIRMATION
+_SIGNUPCONFIRMATION.fields_by_name['email'].enum_type = _SIGNUPCONFIRMATION_ERRORCODE
+_SIGNUPCONFIRMATION.fields_by_name['playerid'].enum_type = _SIGNUPCONFIRMATION_ERRORCODE
+_SIGNUPCONFIRMATION_ERRORCODE.containing_type = _SIGNUPCONFIRMATION
 DESCRIPTOR.message_types_by_name['SignUpConfirmation'] = _SIGNUPCONFIRMATION
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 

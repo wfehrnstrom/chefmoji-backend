@@ -19,10 +19,13 @@ class signup_checker:
         #TODO: check if email exists (valid)
         playerid_not_clean = False
 
-        if(playerid_not_unique):
-            self.message.playerid = self.message.ErrorCode.notunique
         if(playerid_not_clean):
             self.message.playerid = self.message.ErrorCode.notclean
+        if(playerid_not_unique):
+            self.message.playerid = self.message.ErrorCode.notunique
+        if(playerid_not_clean or playerid_not_unique):
+            return 0
+        return 1
 
     # checks if email is unique
     # checks if email is valid
@@ -36,11 +39,19 @@ class signup_checker:
             self.message.email = self.message.ErrorCode.notvalid
         if(email_not_unique):
             self.message.email = self.message.ErrorCode.notunique
+        if(email_exists or email_not_unique):
+            return 0
+        return 1
 
     def check(self):
-        self.email_checker()
-        self.playerid_checker()
+        if(self.email_checker() and self.playerid_checker()):
+            # write to database
 
+            #if write to database is successful
+            self.message.success = True
+
+        #debug
+        # return str(self.message.email) + ''
         return self.message.SerializeToString()
 
 
