@@ -45,14 +45,11 @@ class signup_checker:
 
     def check(self):
         if(self.email_checker() and self.playerid_checker()):
-            # write to database
-
-            #if write to database is successful
             self.message.success = True
 
         #debug
         # return str(self.message.email) + ''
-        return self.message.SerializeToString()
+        return self.message
 
 
 
