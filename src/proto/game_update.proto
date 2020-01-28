@@ -3,7 +3,7 @@ syntax = "proto3";
 package chefmoji;
 
 message MapUpdate {
-    // A global game synchronizing tick count may be used in the future.
+    // Protocol buffer compiler will complain if future users use reserved identifiers
     reserved 1;
     reserved "tick_count";
     // In format [ROW1_STR,ROW2_STR,ROW3_STR].
@@ -19,23 +19,21 @@ message PlayerUpdate {
 }
 
 enum OrderType {
-    HOT_DOG = 0;
-    PIZZA = 1;
-    TACO = 2;
-    GYRO = 3;
-    SANDWICH = 4;
-    HAMBURGER = 5;
-    WAFFLES = 6;
-    PANCAKES = 7;
-    EGGS = 8;
-    BURRITO = 9;
-    SUSHI = 10;
-    RAMEN = 11;
-    BENTO_BOX = 12;
-    STEW = 13;
-    CURRY_RICE = 14;
-    TROPICAL_DRINK = 15;
-    CHOCOLATE_CHIP_COOKIE = 16;
+    HOT_DOG = 1;
+    PIZZA = 2;
+    TACO = 3;
+    GYRO = 4;
+    SANDWICH = 5;
+    HAMBURGER = 6;
+    WAFFLES = 7;
+    PANCAKES = 8;
+    EGGS = 9;
+    BURRITO = 10;
+    SUSHI = 11;
+    RAMEN = 12;
+    BENTO_BOX = 13;
+    STEW = 14;
+    CURRY_RICE = 15;
 }
 
 message OrderUpdate {
