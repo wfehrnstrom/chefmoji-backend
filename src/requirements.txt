@@ -2,3 +2,4 @@ Flask
 Flask-Mail
 itsdangerous
 protobuf
+pysha3

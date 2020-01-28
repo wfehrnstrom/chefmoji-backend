@@ -1,15 +1,13 @@
+
+# email token settings
 SECRET_KEY = 'ABCD'
 SECRET_SALT = '1234'
 
-# mail settings
-MAIL_SERVER = 'smtp.mail.com'
-MAIL_PORT = 587
-MAIL_USE_TLS = True
-MAIL_USE_SSL = False
-
-# gmail authentication
-MAIL_USERNAME = 'chefmoji@toothfairy.com'
-MAIL_PASSWORD = 'ilovechefmoji'
-
-# mail accounts
-MAIL_DEFAULT_SENDER = 'chefmoji@toothfairy.com'
+# email settings
+MAIL_SERVER = 'smtp.gmail.com'
+MAIL_PORT = 465
+MAIL_USE_TLS = False
+MAIL_USE_SSL = True
+MAIL_DEFAULT_SENDER = 'chefmojimoji@gmail.com'
+MAIL_USERNAME = 'chefmojimoji@gmail.com'
+MAIL_PASSWORD = 'IloveChefmoji.1'
