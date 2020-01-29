@@ -2,6 +2,8 @@ from enum import Enum, unique
 from functools import reduce
 import unittest
 
+from game_update_pb2 import MapUpdate
+
 class CellBase(Enum):
     WALL = 1
     FRIDGE = 2
@@ -132,8 +134,10 @@ class Map:
 		for row in self.to_str():
 			print(row)
 
+
 class Player:
 	def __init__(self, id, loc, game):
+		self.id = id
 		self.inventory = None
 		assert game.map.in_bounds(loc)
 		self.loc = loc
@@ -163,6 +167,20 @@ class Game:
 		assert self.map.valid()
 		self.points = 0
 		self.order_queue = []
+
+	def serialize_into_pb(self):
+		pb = MapUpdate()
+		for row in self.map.to_str():
+			pb.map.append(row)
+		for p in self.players:
+			player = pb.players.add()
+			player.id = p.id
+			player.position.append(p.loc[0])
+			player.position.append(p.loc[1])
+			if p.inventory is not None:
+				player.inventory = p.inventory
+		return pb.SerializeToString()
+		# TODO: Implement order serialization
 
 class TestGameMethods(unittest.TestCase):
 	def test_map(self):

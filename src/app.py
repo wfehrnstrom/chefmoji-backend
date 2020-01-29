@@ -1,11 +1,10 @@
 from os import environ
 from flask import Flask, render_template
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, join_room, leave_room
 from dotenv import load_dotenv
 from pathlib import Path
 import os
 import argparse
-import game_update_pb2
 
 from game import Game
 
@@ -43,7 +42,16 @@ def handle_join(join_req):
             pass
         else:
             game_sessions[join_req['id']] = Game(join_req['id'])
-        socketio.emit('tick', {'map': game_sessions[join_req['id']].map.to_str()})
+        join_room(join_req['id'])
+        g_update(socketio, join_req['id'])
+        g_update(socketio, join_req['id'], True)
+
+def g_update(sio, g_id, pb=False):
+    if g_id in game_sessions:
+        if pb:
+            sio.emit('tick', game_sessions[g_id].serialize_into_pb())
+        else:
+            sio.emit('tick', {'map': game_sessions[g_id].map.to_str()})
 
 @socketio.on('connect')
 def handle_connect():
