@@ -1,4 +1,5 @@
 from enum import Enum, unique
+from functools import reduce
 import unittest
 
 class CellBase(Enum):
@@ -12,7 +13,7 @@ class CellBase(Enum):
     TURNIN = 8
 
     def to_str(self):
-	    reps = ['W', 'F', 'T', 'r', '0', 'K', '>']
+	    reps = ['W', 'F', ' ', 'T', 'r', '0', 'K', '>']
 	    assert len(list(CellBase)) == len(reps)
 	    return reps[self.value-1]
 
@@ -63,7 +64,7 @@ class GameCell:
 		self.base = base
 		self.entity = entity_id
 	
-	def char_rep(self):
+	def to_str(self):
 		if self.entity is not None:
 			return self.entity.to_str()
 		return self.base.to_str()
@@ -125,7 +126,7 @@ class Map:
 		return self.smooth() and self.closed()
 
 	def to_str(self):
-		return [[cell.to_str() for cell in row].join('') for row in self.map]
+		return [reduce(lambda c1, c2: c1 + c2, [cell.to_str() for cell in row]) for row in self.map]
 
 	def debug(self):
 		for row in self.to_str():
