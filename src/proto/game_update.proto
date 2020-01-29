@@ -4,12 +4,11 @@ package chefmoji;
 
 message MapUpdate {
     // A global game synchronizing tick count may be used in the future.
-    reserved 1;
-    reserved "tick_count";
+    //
     // In format [ROW1_STR,ROW2_STR,ROW3_STR].
-    repeated string map = 2;
-    repeated PlayerUpdate players = 3; 
-    repeated OrderUpdate order = 4;
+    repeated string map = 1;
+    repeated PlayerUpdate players = 2; 
+    repeated OrderUpdate order = 3;
 }
 
 message PlayerUpdate {
@@ -34,8 +33,6 @@ enum OrderType {
     BENTO_BOX = 12;
     STEW = 13;
     CURRY_RICE = 14;
-    TROPICAL_DRINK = 15;
-    CHOCOLATE_CHIP_COOKIE = 16;
 }
 
 message OrderUpdate {
