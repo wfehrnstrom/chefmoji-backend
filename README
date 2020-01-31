@@ -1,3 +1,11 @@
+# Installing required components and general set up
+
 This project requires that docker, python3.8 >=, pip, make and curl be pre-installed
 Install those, then run 'make install'. Then run the command `export FLASK_APP=src/app.py`.
-This tells the flask command where the application to run is located.
+This tells the flask command where the application to run is located. Also be sure to obtain a .env file
+from a project maintainer that has one, and place it in the src directory.
+
+# Running Backend
+
+run 'make dev'
+

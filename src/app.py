@@ -16,6 +16,10 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 
 game_sessions = dict()
 
+# FOR NOW ONLY
+# TODO: REMOVE
+PLAYER_1_ID = '1aLc90'
+
 @app.route("/")
 def hello_world():
     socketio.emit('accepting-connections')
@@ -28,15 +32,25 @@ def handle_session_req():
     pass
 
 @socketio.on('keypress')
-def handle_player_keypress(keydata):
-    pass
+def handle_player_keypress(key, game_id):
+    # TODO: Handle specific player: for now, just automatically move first player
+    if game_id in game_sessions:
+        game = game_sessions[game_id]
+        if game.valid_player_update(PLAYER_1_ID, key):
+            # change game state
+            game.update(PLAYER_1_ID, key)
+            # send tick to all connected clients
+            g_update(socketio, game_id, pb=True)
+        else:
+            raise ValueError
+
 
 @socketio.on('join-req')
 def handle_join(join_req):
     print('Join Request Received\n')
     # TODO: join request validation scheme
     print(join_req)
-    join_req = {'id': '1aLc90'}
+    join_req = {'id': PLAYER_1_ID}
     if 'id' in join_req:
         if join_req['id'] in game_sessions:
             pass

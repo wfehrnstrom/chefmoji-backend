@@ -4,6 +4,12 @@ import unittest
 
 from game_update_pb2 import MapUpdate
 
+UP_KEYS = ['w', 'ArrowUp']
+LEFT_KEYS = ['a', 'ArrowLeft']
+DOWN_KEYS = ['s', 'ArrowDown']
+RIGHT_KEYS = ['d', 'ArrowRight']
+MOVE_KEYS = UP_KEYS.extend(LEFT_KEYS).extend(DOWN_KEYS).extend(RIGHT_KEYS)
+
 class CellBase(Enum):
     WALL = 1
     FRIDGE = 2
@@ -13,11 +19,15 @@ class CellBase(Enum):
     STOVE = 6
     CUTTING_BOARD = 7
     TURNIN = 8
+    SOURCE = 9
 
     def to_str(self):
-	    reps = ['W', 'F', ' ', 'T', 'r', '0', 'K', '>']
+	    reps = ['W', 'F', ' ', 'T', 'r', '0', 'K', '>', '@']
 	    assert len(list(CellBase)) == len(reps)
 	    return reps[self.value-1]
+
+    def collidable(self):
+	    return self.value != CellBase.FLOOR
 
 # Entities are inherently movable
 @unique
@@ -70,6 +80,9 @@ class GameCell:
 		if self.entity is not None:
 			return self.entity.to_str()
 		return self.base.to_str()
+	
+	def collidable(self):
+		return self.base.collidable() or (self.entity is not None)
 
 
 DEFAULT_MAP = [
@@ -79,7 +92,7 @@ DEFAULT_MAP = [
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE, Entity.CARROT), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE, Entity.CHEESE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE, Entity.RICE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE, Entity.LETTUCE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
-		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TURNIN), GameCell(CellBase.TURNIN)],
+		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FLOOR), Entity.PLAYER, GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TURNIN), GameCell(CellBase.TURNIN)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE, Entity.TOMATO), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE, Entity.RAW_PATTY), GameCell(CellBase.WALL), GameCell(CellBase.TABLE, Entity.BREAD), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
@@ -135,12 +148,26 @@ class Map:
 			print(row)
 
 
-class Player:
-	def __init__(self, id, loc, game):
+class Player(Entity):
+	def __init__(self, id, loc, game, seq=1):
 		self.id = id
 		self.inventory = None
 		assert game.map.in_bounds(loc)
 		self.loc = loc
+		if seq == 1:
+			self.emoji = '😎'
+		elif seq == 2:
+			self.emoji = '🧠'
+
+	def move(self, key):
+		if key in UP_KEYS:
+			return [self.loc[0], self.loc[1]-1]
+		if key in DOWN_KEYS:
+			return [self.loc[0], self.loc[1]+1]
+		if key in LEFT_KEYS:
+			return [self.loc[0]-1, self.loc[1]]
+		if key in RIGHT_KEYS:
+			return [self.loc[0]+1, self.loc[1]]
 
 class IngredientCollection:
 	pass
@@ -167,6 +194,26 @@ class Game:
 		assert self.map.valid()
 		self.points = 0
 		self.order_queue = []
+
+	def valid_player_update(self, player_id, key):
+		player = self.players[id]
+		if key in MOVE_KEYS:
+			new_loc = player.move(key)
+			return not self.map.map[new_loc[0]][new_loc[1]].collidable()
+		elif key is 'e':
+			# TODO: Implement Item pickup and drop
+			return True
+		else:
+			return False
+
+	def update(self, player_id, key):
+		assert self.valid_player_update(player_id, key)
+		player = self.players[player_id]
+		old_loc = player.loc.copy()
+		# update player location
+		self.players[player_id].loc = player.move(key)
+		self.map.map[player.loc[0]][player.loc[1]].entity = player
+		self.map.map[old_loc[0]][old_loc[1]] = None
 
 	def serialize_into_pb(self):
 		pb = MapUpdate()
