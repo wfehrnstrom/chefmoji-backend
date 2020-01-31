@@ -16,6 +16,8 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 
 game_sessions = dict()
 
+DEBUG = True
+
 # FOR NOW ONLY
 # TODO: REMOVE
 PLAYER_1_ID = '1aLc90'
@@ -40,9 +42,11 @@ def handle_player_keypress(key, game_id):
             # change game state
             game.update(PLAYER_1_ID, key)
             # send tick to all connected clients
+            g_update(socketio, game_id)
             g_update(socketio, game_id, pb=True)
         else:
-            raise ValueError
+            print("Invalid update!")
+            # raise ValueError
 
 
 @socketio.on('join-req')
@@ -52,19 +56,20 @@ def handle_join(join_req):
     print(join_req)
     join_req = {'id': PLAYER_1_ID}
     if 'id' in join_req:
-        if join_req['id'] in game_sessions:
-            pass
-        else:
-            game_sessions[join_req['id']] = Game(join_req['id'])
+        if join_req['id'] not in game_sessions:
+            game_sessions[join_req['id']] = Game(join_req['id'], [join_req['id']])
         join_room(join_req['id'])
         g_update(socketio, join_req['id'])
-        g_update(socketio, join_req['id'], True)
+        g_update(socketio, join_req['id'], pb=True)
 
 def g_update(sio, g_id, pb=False):
     if g_id in game_sessions:
         if pb:
             sio.emit('tick', game_sessions[g_id].serialize_into_pb())
         else:
+            if DEBUG:
+                for row in game_sessions[g_id].map.to_str():
+                    print(row)
             sio.emit('tick', {'map': game_sessions[g_id].map.to_str()})
 
 @socketio.on('connect')
