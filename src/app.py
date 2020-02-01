@@ -5,6 +5,7 @@ from mailconfirm.tokenconfirm import generate_confirmation_token, confirm_token
 from flask_mail import Mail
 from flask_mail import Message
 import sha3
+import pyotp
 
 app = Flask(__name__, instance_relative_config=True)
 # app.config.from_object('config')
@@ -17,6 +18,30 @@ mail = Mail(app)
 def hello_world():
     checker =  signup_checker("hello@@gmail.com", "LAlala.,")
     return checker.check() #returns an object of the protobuf
+
+@app.route("/login")
+def login():
+    # TODO: Get protobuf data from form
+    # formdata.ParseFromString(request.form.get('protobuf'))
+    # playerid = formdata.message.playerid
+    # password = formdata.message.password
+    # totp = formdata.message.password
+    # debug
+    playerid = "hellowordlz"
+    password = "iloveyou"
+    totp = ""
+
+    # hash password
+    password = sha3.sha3_224(password.encode('utf-8')).hexdigest()
+
+    # TODO: call DBman to check
+
+    # TODO: call DBman to return a totp object from
+        # totp_obj = pyotp.TOTP('secrettotpkey')
+    
+    # TODO: totp_obj.verify('totp') 
+
+
 
 @app.route("/register")
 def register():
@@ -59,13 +84,22 @@ def email_confirm(token):
     # TODO: check if email exists in the database
     # TODO: check if email is already confirmed
 
+    #debug
+    totpkey = ''
+    if(True):
     # if email/user is confirmed
         # flash('Your account is already confirmed', 'success')
+        # implement PYOTP here
+        totpkey = pyotp.random_base32()
+        # TODO: Store totpkey in database        
     # else
         # write to the database that the user is confirmed
         # flash('You have confirmed your account', 'success')
 
-    # TODO: redirect to page to generate QRCODE for TOTP
+    # TODO: redirect to page to generate QRCODE for TOTP 
+    # (IMPORTANT! NO LET'S NOT REDIRECT FOR NOW, JUST SEND TOTP ALONG WITH SUCCESS CONFIRM PAGE)
     # return redirect(..TOTP page..)
-    return email or ''
+
+    # debug
+    return (email + '\nkey: ' + str(totpkey)) or ''
     # NOTE: working with flash on the front end - get_flashed_messages() https://pythonprogramming.net/flash-flask-tutorial/
