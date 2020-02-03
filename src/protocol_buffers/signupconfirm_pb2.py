@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n$protocol_buffers/signupconfirm.proto\"\xc6\x01\n\x12SignUpConfirmation\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12,\n\x05\x65mail\x18\x02 \x01(\x0e\x32\x1d.SignUpConfirmation.ErrorCode\x12/\n\x08playerid\x18\x03 \x01(\x0e\x32\x1d.SignUpConfirmation.ErrorCode\"@\n\tErrorCode\x12\x08\n\x04good\x10\x00\x12\r\n\tnotunique\x10\x01\x12\x0c\n\x08notclean\x10\x02\x12\x0c\n\x08notvalid\x10\x03\x62\x06proto3'
+  serialized_pb=b'\n$protocol_buffers/signupconfirm.proto\"\xd9\x01\n\x12SignUpConfirmation\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12,\n\x05\x65mail\x18\x02 \x01(\x0e\x32\x1d.SignUpConfirmation.ErrorCode\x12/\n\x08playerid\x18\x03 \x01(\x0e\x32\x1d.SignUpConfirmation.ErrorCode\"S\n\tErrorCode\x12\x08\n\x04good\x10\x00\x12\r\n\tnotunique\x10\x01\x12\x0c\n\x08notclean\x10\x02\x12\x0c\n\x08notvalid\x10\x03\x12\x11\n\rotherfailures\x10\x04\x62\x06proto3'
 )
 
 
@@ -45,11 +45,15 @@ _SIGNUPCONFIRMATION_ERRORCODE = _descriptor.EnumDescriptor(
       name='notvalid', index=3, number=3,
       serialized_options=None,
       type=None),
+    _descriptor.EnumValueDescriptor(
+      name='otherfailures', index=4, number=4,
+      serialized_options=None,
+      type=None),
   ],
   containing_type=None,
   serialized_options=None,
   serialized_start=175,
-  serialized_end=239,
+  serialized_end=258,
 )
 _sym_db.RegisterEnumDescriptor(_SIGNUPCONFIRMATION_ERRORCODE)
 
@@ -96,7 +100,7 @@ _SIGNUPCONFIRMATION = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=41,
-  serialized_end=239,
+  serialized_end=258,
 )
 
 _SIGNUPCONFIRMATION.fields_by_name['email'].enum_type = _SIGNUPCONFIRMATION_ERRORCODE

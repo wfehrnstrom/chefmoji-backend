@@ -7,6 +7,8 @@ message SignUpConfirmation {
         notunique = 1;
         notclean = 2;
         notvalid = 3;
+        // includes database failure
+        otherfailures = 4;
     }
     ErrorCode email = 2;
     ErrorCode playerid = 3;

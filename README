@@ -8,3 +8,4 @@ Notes on Protocol Buffers:
 e.g. to compile:
 protoc -I=/path/chefmoji-backend/src --python_out=/path/chefmoji-backend/src /path/chefmoji-backend/src/protocol_buffers/signupconfirm.proto
 protoc -I=/Users/ertheosiswadi/Projects/sixth-sense/chefmoji-backend/src --python_out=/Users/ertheosiswadi/Projects/sixth-sense/chefmoji-backend/src /Users/ertheosiswadi/Projects/sixth-sense/chefmoji-backend/src/protocol_buffers/signupconfirm.proto
+protoc -I=/Volumes/macOSMainDisk/ertheosiswadi/Projects/chefmoji-backend/src --python_out=/Volumes/macOSMainDisk/ertheosiswadi/Projects/chefmoji-backend/src /Volumes/macOSMainDisk/ertheosiswadi/Projects/chefmoji-backend/src/protocol_buffers/emailconfirm.proto

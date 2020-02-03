@@ -3,7 +3,9 @@ import sys
 import os
 sys.path.append(os.getcwd() + '/' + 'src/protocol_buffers')
 import signupconfirm_pb2
-
+sys.path.append(os.getcwd() + '/' + 'src/db')
+from db import DBman
+db = DBman()
 class signup_checker:
     def __init__(self, email, playerid):
         self.email = email
@@ -14,15 +16,15 @@ class signup_checker:
     #checks if playerid has swear words
     def playerid_checker(self):
         #does it exist in the database
-        #TODO: call the DB manager to check if playerid exists
         playerid_not_unique = False
-        #TODO: check if email exists (valid)
+        #TODO: check if playerid has swear words
         playerid_not_clean = False
 
         if(playerid_not_clean):
             self.message.playerid = self.message.ErrorCode.notclean
-        if(playerid_not_unique):
+        if(not db.is_player_id_unique(self.playerid)):
             self.message.playerid = self.message.ErrorCode.notunique
+            playerid_not_unique = 1
         if(playerid_not_clean or playerid_not_unique):
             return 0
         return 1
@@ -30,21 +32,15 @@ class signup_checker:
     # checks if email is unique
     # checks if email is valid
     def email_checker(self):
-        #TODO: call the DB manager to check if email exists
-        email_not_unique = False
-        #TODO: check if email exists (valid)
-        email_exists = False
-
-        if(email_exists):
-            self.message.email = self.message.ErrorCode.notvalid
-        if(email_not_unique):
+        if(not db.is_email_unique(self.email)):
             self.message.email = self.message.ErrorCode.notunique
-        if(email_exists or email_not_unique):
             return 0
         return 1
 
     def check(self):
-        if(self.email_checker() and self.playerid_checker()):
+        is_email_ok = self.email_checker()
+        is_player_id_ok = self.playerid_checker()
+        if(is_email_ok and is_player_id_ok):
             self.message.success = True
 
         #debug
