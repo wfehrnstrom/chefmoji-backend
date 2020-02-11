@@ -10,6 +10,7 @@ from game import Game
 
 load_dotenv(dotenv_path=Path('../.env'))
 
+print(f"----------RUNNING AS {__name__}----------")
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 # REMOVE/RESTRICT CORS_ALLOWED_ORIGINS. THIS IS DEVELOPMENT ONLY.

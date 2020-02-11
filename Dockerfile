@@ -10,17 +10,9 @@ RUN rm -f /etc/nginx/sites-available/default
 RUN rm -rf /usr/share/nginx/html/*
 
 WORKDIR /app
-COPY . .
-
-RUN rm README
-
 COPY src/requirements.txt /tmp
 RUN export UWSGI_INCLUDES=/usr/include/
 RUN pip install -r /tmp/requirements.txt
-COPY nginx/conf/nginx.conf /etc/nginx/nginx.conf
-COPY nginx/proxy_params /etc/nginx/proxy_params
-COPY uwsgi/conf/chefmoji.ini /etc/uwsgi/chefmoji.ini
-COPY supervisord/conf/supervisord.conf /etc/supervisord.conf
 
 ## Add a default user so we don't run as root and change the directories created
 #  to be owned by this user
