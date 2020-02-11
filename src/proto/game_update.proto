@@ -2,11 +2,17 @@ syntax = "proto3";
 
 package chefmoji;
 
+message MapRow {
+    // In format [TILE1_STR,ROW2_STR,ROW3_STR]
+    // In format 'F '
+    repeated string row = 1;
+}
+
 message MapUpdate {
     // A global game synchronizing tick count may be used in the future.
     //
     // In format [ROW1_STR,ROW2_STR,ROW3_STR].
-    repeated string map = 1;
+    repeated MapRow map = 1;
     repeated PlayerUpdate players = 2; 
     repeated OrderUpdate order = 3;
 }
