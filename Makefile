@@ -18,9 +18,8 @@ proto:
 dev: proto
 	export FLASK_ENV=development && python3 $(CHEFMOJI_SRC_DIR)/app.py
 
-prod: proto
-	docker build . -t chefmoji
-	docker run -p $(SERVER_PORT):$(SERVER_PORT) chefmoji
+build-base: proto  
+	docker build . -t base
 
 ec2-login:
 	ssh -i $(PEM_FILE) ec2-user@$(EC2_IP)

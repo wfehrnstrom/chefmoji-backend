@@ -3,3 +3,5 @@ flask-socketio
 gevent
 python-dotenv
 protobuf
+pathlib
+uwsgi --no-binary :all:

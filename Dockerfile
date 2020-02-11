@@ -1,7 +1,6 @@
 FROM python:alpine3.10 AS base
 
-RUN apk add gcc libc-dev linux-headers supervisor nginx
-RUN pip install uwsgi
+RUN apk add gcc libc-dev linux-headers supervisor nginx openssl-dev
 
 ## need to pre-initialize to stop problems finding nginx pid correctly on startup
 RUN touch /var/run/nginx.pid
@@ -12,11 +11,14 @@ RUN rm -rf /usr/share/nginx/html/*
 
 WORKDIR /app
 COPY . .
+
 RUN rm README
 
 COPY src/requirements.txt /tmp
+RUN export UWSGI_INCLUDES=/usr/include/
 RUN pip install -r /tmp/requirements.txt
 COPY nginx/conf/nginx.conf /etc/nginx/nginx.conf
+COPY nginx/proxy_params /etc/nginx/proxy_params
 COPY uwsgi/conf/chefmoji.ini /etc/uwsgi/chefmoji.ini
 COPY supervisord/conf/supervisord.conf /etc/supervisord.conf
 
@@ -28,8 +30,3 @@ RUN chmod -R ug=rwx /etc/nginx /etc/uwsgi /var/tmp/nginx /var/lib/nginx
 RUN chmod -R 755 /var/log/nginx /var/run/nginx.pid
 RUN chmod ugoa=r /etc/supervisord.conf /etc/nginx/nginx.conf /etc/uwsgi/chefmoji.ini
 RUN chmod -R ug+rwx /app
-ENV FLASK_ENV=production
-
-EXPOSE 5000
-
-CMD ["supervisord", "-c", "/etc/supervisord.conf"]
