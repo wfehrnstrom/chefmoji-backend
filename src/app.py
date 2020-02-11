@@ -42,8 +42,8 @@ def handle_player_keypress(key, game_id):
             # change game state
             game.update(PLAYER_1_ID, key)
             # send tick to all connected clients
-            g_update(socketio, game_id)
             g_update(socketio, game_id, pb=True)
+            # g_update(socketio, game_id, pb=True)
         else:
             print("Invalid update!")
             # raise ValueError
@@ -59,8 +59,8 @@ def handle_join(join_req):
         if join_req['id'] not in game_sessions:
             game_sessions[join_req['id']] = Game(join_req['id'], [join_req['id']])
         join_room(join_req['id'])
-        g_update(socketio, join_req['id'])
         g_update(socketio, join_req['id'], pb=True)
+        # g_update(socketio, join_req['id'], pb=True)
 
 def g_update(sio, g_id, pb=False):
     if g_id in game_sessions:

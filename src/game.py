@@ -196,6 +196,7 @@ class Map:
 				temp2.row.append(cell.to_str())
 			temp.append(temp2)
 		return temp
+		print(temp)
 		# encoded = 
 		# return [reduce(lambda c1, c2: c1 + c2, [cell.to_str() for cell in row]) for row in self.map]
 
@@ -269,8 +270,7 @@ class Game:
 	def serialize_into_pb(self):
 		pb = MapUpdate()
 		for row in self.map.to_str():
-			r = MapRow(row=row)
-			pb.map.append(r)
+			pb.map.append(row)
 		for p in self.players.values():
 			player = pb.players.add()
 			player.id = p.id
