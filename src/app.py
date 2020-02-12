@@ -56,7 +56,6 @@ def register():
         except Exception as err:
             print("%s" % err)
             return checker.message.SerializeToString()
-
     return checker.message.SerializeToString()
 
 @app.route("/emailconfirm/<token>")
@@ -68,6 +67,7 @@ def email_confirm(token):
     except:
         toreturn.success = False
         toreturn.status = toreturn.ErrorCode.doesnotexist
+
         return toreturn.SerializeToString()
 
     try:
@@ -77,20 +77,16 @@ def email_confirm(token):
                 toreturn.status = toreturn.ErrorCode.prevconfirmed
             else:
                 # set verified flag in db and write mfa key to datbase
-                if db.verify_account(email):
-                    # TODO: handle if this fails
-                    totpkey = db.set_totp_key(email)
+                db.verify_account(email)
+                totpkey = db.set_totp_key(email)
 
-                    toreturn.success = True
-                    toreturn.status = toreturn.ErrorCode.justconfirmed
-                    toreturn.totpkey = totpkey
-                else: # failed to write to db
-                    toreturn.success = False
-                    toreturn.status = toreturn.ErrorCode.otherfailures
+                toreturn.success = True
+                toreturn.status = toreturn.ErrorCode.justconfirmed
+                toreturn.totpkey = totpkey
         else: #if email DOES NOT EXIST in the database
             toreturn.success = False
             toreturn.status = toreturn.ErrorCode.doesnotexist
-    except:
+    except Exception as err:
         toreturn.success = False
         toreturn.status = toreturn.ErrorCode.otherfailures
         return toreturn.SerializeToString()
@@ -116,13 +112,13 @@ def login():
     toreturn = loginconfirm_pb2.LoginConfirmation()
 
     # call DBman to check
-    toreturn = db.check_login_info(playerid, password, totp, toreturn)
+    try:
+        toreturn = db.check_login_info(playerid, password, totp, toreturn)
+    except:
+        toreturn.success = False
+        toreturn.status = toreturn.ErrorCode.otherfailures
+        return toreturn.SerializeToString()
 
     # if toreturn.success:
         # TODO: redirect to home page
     return toreturn.SerializeToString()
-
-# TODO: Change this to server our home page
-@app.route("/")
-def hello_world():
-    return 'Hello Helloo WORLD'

@@ -24,11 +24,25 @@ class DBman:
     def db_write_query(self, query, params):
         try:
             self.cursor.execute(query, params)
-            self.cursor.commit()
+            self.db.commit()
         except Exception as err:
-            self.cursor.rollback()
+            self.db.rollback()
             print('DB exception: %s' % err)
             raise
+
+    def is_player_id_unique(self, player_id):
+        query = f"\
+            SELECT COUNT(1)\
+              FROM {self.tbl_user} t\
+             WHERE t.player_id=%(player_id)s"
+
+        params = {'player_id': player_id}
+        self.db_read_query(query, params)
+        result = self.cursor.fetchone()
+        if result and result[0] == 0:
+            return True
+        else:
+            return False
 
     def is_email_unique(self, email):
         query = f"\
@@ -37,55 +51,35 @@ class DBman:
              WHERE t.email=%(email)s"
         params = {'email': email}
 
-        try:
-            self.db_read_query(query, params)
-            if self.cursor.fetchone()[0] > 0:
-                return False
-            else:
-                return True
-        except:
-            raise
+        self.db_read_query(query, params)
+        result = self.cursor.fetchone()
+        if result and result[0] == 0:
+            return True
+        else:
+            return False
 
     def is_account_verified(self, player_id='', email=''):
         query = f"\
             SELECT t.verified\
               FROM {self.tbl_user} t\
              WHERE t.email=%(email)s or t.player_id=%(player_id)s"
-        self.cursor.execute(query, {'player_id': player_id, 'email': email})
+        self.db_read_query(query, {'player_id': player_id, 'email': email})
         result = self.cursor.fetchone()
         if result and result[0] == 1:
             return True
         else:
             return False
 
-    def is_player_id_unique(self, player_id):
-        query = f"\
-            SELECT COUNT(1)\
-              FROM {self.tbl_user} t\
-             WHERE t.player_id=%(player_id)s"
-        self.cursor.execute(query, {'player_id': player_id})
-        if self.cursor.fetchone()[0] > 0:
-            return False
-        else:
-            return True
-
     def set_signupinfo(self, player_id, email, password):
         values = (player_id, email, password)
-        self.cursor.execute("INSERT INTO tbl_user (player_id, email, password) VALUES (%s, %s, %s)", values)
-        self.db.commit()
+        self.db_write_query("INSERT INTO tbl_user (player_id, email, password) VALUES (%s, %s, %s)", values)
 
     def verify_account(self, email):
         query = f"\
             UPDATE {self.tbl_user}\
                SET verified=TRUE\
              WHERE email=%(email)s"
-        try:
-            self.cursor.execute(query, {'email': email})
-            self.db.commit()
-        except:
-            self.db.rollback()
-            return False
-        return True
+        self.db_write_query(query, {'email': email})
 
     def set_totp_key(self, email):
         totpkey = pyotp.random_base32()
@@ -94,13 +88,7 @@ class DBman:
             UPDATE {self.tbl_user}\
                SET mfa_key=%(totpkey)s\
              WHERE email=%(email)s"
-        try:
-            # TODO: Hash the totpkey before storing in db with a 2-way hash
-            self.cursor.execute(query, {'totpkey': totpkey, 'email': email})
-            self.db.commit()
-        except:
-            self.db.rollback()
-            return False
+        self.db_write_query(query, {'totpkey': totpkey, 'email': email})
         return totpkey
 
     def check_login_info(self, player_id, password, totp, message):
@@ -115,11 +103,7 @@ class DBman:
                     SELECT mfa_key\
                     FROM {self.tbl_user}\
                     WHERE player_id=%(player_id)s AND password=%(password)s"
-                try:
-                    self.cursor.execute(query, {'player_id': player_id, 'password': password})
-                except: #db error
-                    message.status = message.ErrorCode.otherfailures
-                    return message
+                self.db_read_query(query, {'player_id': player_id, 'password': password})
 
                 result = self.cursor.fetchone()
                 if result:
@@ -144,25 +128,22 @@ class DBman:
         self.update_timestamp(player_id)
         return message
 
-    # reset counter to 0 if timestampdiff >= 5
-    # reset counter to 0 after successful login
+    # reset login_counter to 0 if timestampdiff >= 5
+    # reset login_counter to 0 after successful login
     def update_counter(self, player_id, case):
         query = ''
         if case == 'ifcooldownended':
             query = f"\
                 UPDATE {self.tbl_user}\
-                SET counter=0\
+                SET login_counter=0\
                 WHERE player_id=%(player_id)s AND (TIMESTAMPDIFF(MINUTE, timestamp, LOCALTIME())>=5)"
         elif case == 'loginsuccessful':
             query = f"\
                 UPDATE {self.tbl_user}\
-                SET counter=0\
+                SET login_counter=0\
                 WHERE player_id=%(player_id)s"
-        try:
-            self.cursor.execute(query, {'player_id': player_id})
-            self.db.commit()
-        except:
-            self.db.rollback()
+
+        self.db_write_query(query, {'player_id': player_id})
 
     # reset timestamp to now
     def update_timestamp(self, player_id):
@@ -170,31 +151,23 @@ class DBman:
             UPDATE {self.tbl_user}\
                SET timestamp=LOCALTIME()\
              WHERE player_id=%(player_id)s"
-        try:
-            self.cursor.execute(query_update_timestamp, {'player_id': player_id})
-            self.db.commit()
-        except:
-            self.db.rollback()
+        self.db_write_query(query_update_timestamp, {'player_id': player_id})
 
     # increment failed login attempts counter and update timestamp
     def counterpp(self, player_id):
         query = f"\
             UPDATE {self.tbl_user}\
-               SET counter=counter+1\
+               SET login_counter=login_counter+1\
              WHERE player_id=%(player_id)s"
-        try:
-            self.cursor.execute(query, {'player_id': player_id})
-            self.db.commit()
-        except:
-            self.db.rollback()
+        self.db_write_query(query, {'player_id': player_id})
 
     # check if player is still in a cooldown
     def in_cooldown(self, player_id):
         query = f"\
             SELECT COUNT(1)\
               FROM {self.tbl_user}\
-             WHERE player_id=%(player_id)s AND (counter<5 OR TIMESTAMPDIFF(MINUTE, timestamp, LOCALTIME())>5)"
-        self.cursor.execute(query, {'player_id': player_id,})
+             WHERE player_id=%(player_id)s AND (login_counter<5 OR TIMESTAMPDIFF(MINUTE, timestamp, LOCALTIME())>5)"
+        self.db_read_query(query, {'player_id': player_id,})
         result = self.cursor.fetchone()
 
         if result and result[0]==1:

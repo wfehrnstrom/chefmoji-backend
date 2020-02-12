@@ -31,13 +31,10 @@ class signup_checker:
     # checks if email is unique
     # checks if email is valid
     def email_checker(self):
-        try:
-            if(not db.is_email_unique(self.email)):
-                self.message.email = self.message.ErrorCode.notunique
-                return 0
-            return 1
-        except:
-            raise
+        if(not db.is_email_unique(self.email)):
+            self.message.email = self.message.ErrorCode.notunique
+            return 0
+        return 1
 
     def check(self):
         try:
@@ -51,6 +48,3 @@ class signup_checker:
             self.message.playerid = self.message.ErrorCode.otherfailures
         finally:
             return self.message
-
-
-
