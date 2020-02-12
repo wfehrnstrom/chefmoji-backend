@@ -9,9 +9,6 @@ import pyotp
 import os
 from protocol_buffers import emailconfirm_pb2, loginconfirm_pb2
 from db.db import DBman
-#debug - to dump object properties
-from inspect import getmembers
-from pprint import pprint
 
 app = Flask(__name__, instance_relative_config=True)
 # mail settings
@@ -25,25 +22,12 @@ app.config['MAIL_PASSWORD']=os.getenv('MAIL_PASSWORD')
 db = DBman()
 mail = Mail(app)
 
-#debug
-import sys
-sys.dont_write_bytecode = True
-
-#debug
-EMAIL = "cad@gmail.com"
-PLAYERID = "cad"
-PASSWORD = "IloveYoU3thoUsandxOXo"
-EMAILSUBJHEADER = "Hello, I am The chefmoji👨‍🍳👩‍🍳"
-totpOBJ = pyotp.TOTP('DI27D62NOARZAUKG')
-TOTP = totpOBJ.now()
-
 @app.route("/register")
 def register():
     # TODO: Get protobuf data from form
-    # debug
-    email = EMAIL
-    playerid = PLAYERID
-    password = PASSWORD
+    email = ''
+    password = ''
+    playerid = ''
 
     # Hash the password again using sha3
     password = sha3.sha3_256(password.encode('utf-8')).hexdigest()
@@ -65,16 +49,13 @@ def register():
         try:
             # TODO: Look at above to do, make sure write success before sending mail
             token = generate_confirmation_token(email, os.getenv('SECRET_KEY'), os.getenv('SECRET_SALT'))
-            msg = Message(EMAILSUBJHEADER, sender = os.getenv('MAIL_USERNAME'),\
+            msg = Message('Hello, I am The chefmoji👨‍🍳👩‍🍳', sender = os.getenv('MAIL_USERNAME'),\
                     recipients = [email])
-                    # recipients=["esiswadi@g.ucla.edu", "wfehrnstrom@gmail.com", "mbshark@g.ucla.edu", "ychua@ucla.edu", "insiyab8@gmail.com", "ssmore12@g.ucla.edu"])
             msg.body = url_for('email_confirm', token = token, _external=True)
             mail.send(msg)
         except Exception as err:
             print("%s" % err)
             return checker.message.SerializeToString()
-    # debug
-    pprint(getmembers(checker.message))
 
     return checker.message.SerializeToString()
 
@@ -87,9 +68,6 @@ def email_confirm(token):
     except:
         toreturn.success = False
         toreturn.status = toreturn.ErrorCode.doesnotexist
-        # debug
-        pprint(getmembers(toreturn))
-
         return toreturn.SerializeToString()
 
     try:
@@ -115,14 +93,8 @@ def email_confirm(token):
     except:
         toreturn.success = False
         toreturn.status = toreturn.ErrorCode.otherfailures
-        # debug
-        print('here1')
-        # pprint(getmembers(toreturn))
         return toreturn.SerializeToString()
 
-    # debug
-    # pprint(getmembers(toreturn))
-    print('here1')
     return toreturn.SerializeToString()
     # NOTE: working with flash on the front end - get_flashed_messages() https://pythonprogramming.net/flash-flask-tutorial/
 
@@ -133,10 +105,9 @@ def login():
     # playerid = formdata.message.playerid
     # password = formdata.message.password
     # totp = formdata.message.password
-    # debug
-    playerid = PLAYERID
-    password = PASSWORD
-    totp = TOTP
+    playerid = ''
+    password = ''
+    totp = ''
 
     # hash password
     password = sha3.sha3_256(password.encode('utf-8')).hexdigest()
@@ -149,8 +120,6 @@ def login():
 
     # if toreturn.success:
         # TODO: redirect to home page
-    #debug
-    pprint(getmembers(toreturn))
     return toreturn.SerializeToString()
 
 # TODO: Change this to server our home page
