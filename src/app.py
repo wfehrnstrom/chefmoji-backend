@@ -7,6 +7,7 @@ import os
 import argparse
 
 from game import Game
+from player_action_pb2 import PlayerAction
 
 load_dotenv(dotenv_path=Path('../.env'))
 app = Flask(__name__)
@@ -34,16 +35,18 @@ def handle_session_req():
     pass
 
 @socketio.on('keypress')
-def handle_player_keypress(key, game_id):
+def handle_player_keypress(msg, game_id):
     # TODO: Handle specific player: for now, just automatically move first player
+    
     if game_id in game_sessions:
+        print(msg)
         game = game_sessions[game_id]
-        if game.valid_player_update(PLAYER_1_ID, key):
+        decoded = PlayerAction.ParseFromString(msg.values())
+        if game.valid_player_update(PLAYER_1_ID, key.key_press):
             # change game state
-            game.update(PLAYER_1_ID, key)
+            game.update(PLAYER_1_ID, key.key_press)
             # send tick to all connected clients
             g_update(socketio, game_id, pb=True)
-            # g_update(socketio, game_id, pb=True)
         else:
             print("Invalid update!")
             # raise ValueError
@@ -60,7 +63,6 @@ def handle_join(join_req):
             game_sessions[join_req['id']] = Game(join_req['id'], [join_req['id']])
         join_room(join_req['id'])
         g_update(socketio, join_req['id'], pb=True)
-        # g_update(socketio, join_req['id'], pb=True)
 
 def g_update(sio, g_id, pb=False):
     if g_id in game_sessions:
