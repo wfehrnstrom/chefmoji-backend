@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+message LoginConfirmation {
+    bool success = 1;
+    enum ErrorCode {
+        badinput = 0;
+        incooldown = 1;
+        notverified = 2;
+        good = 3;
+        // includes database failure
+        otherfailures = 4;
+    }
+    ErrorCode status = 2;
+}

@@ -10,7 +10,9 @@ install:
 	./$(INSTALL_SCRIPTS_DIR)/setupvenvwrapper
 	. /usr/local/bin/virtualenvwrapper.sh; mkvirtualenv chefmoji-backend; setvirtualenvproject $$VIRTUAL_ENV $(pwd)
 	./$(INSTALL_SCRIPTS_DIR)/installprotoc
-	pip install -r src/requirements.txt
+	pip3 install -r src/requirements.txt
+	export FLASK_APP=src/app.py
+
 
 proto:
 	protoc -I=$(CHEFMOJI_SRC_DIR)/proto --python_out=$(CHEFMOJI_SRC_DIR) src/proto/game_update.proto src/proto/player_action.proto
