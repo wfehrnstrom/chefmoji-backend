@@ -1,8 +1,8 @@
-from flask import Flask, render_template, session, send_from_directory
+from flask import Flask, session
 from flask_socketio import SocketIO, join_room, leave_room
 from dotenv import load_dotenv
 from pathlib import Path
-from utils import rand_id, player_in_game, static_files_path
+from utils import rand_id, player_in_game, redirect_ext_url
 import os
 import argparse
 
@@ -10,52 +10,83 @@ from game import Game
 
 load_dotenv(dotenv_path=Path('../.env'))
 
-print(f"----------RUNNING AS {__name__}----------")
+DEBUG=(os.getenv('FLASK_ENV').lower()=='development')
+
+# KEY CONSTANTS
+UID = 'uid'
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
+
 # REMOVE/RESTRICT CORS_ALLOWED_ORIGINS. THIS IS DEVELOPMENT ONLY.
 socketio = SocketIO(app, cors_allowed_origins='*')
 
 game_sessions = dict()
 
-DEBUG = True
-
-# KEY CONSTANTS
-UID = 'uid'
-
-@app.route('/')
-def index():
-    return 'Hello!'
-
-@app.route('/hello')
+@app.route('/test')
 def hello():
     return 'Hello!'
 
-@app.route("/session")
-def handle_session_req():
-    # TODO: ensure user has logged in
-    # if user has verified email
-    # if user is not already in another session
-    # socketio.emit('accepting-connections')
-    return "Hello World!"
+# TODO: IDs will be issued through the TOTP mechanism Ertheo has setup, and not through this dummy route.
+@app.route('/issue-id')
+def issue_id():
+    if not UID in session:
+        generated_uid = rand_id()
+        session[UID] = generated_uid
+        socketio.emit('issue-id', generated_uid)
+        return 'ID Issued.'
+    else:
+        socketio.emit('issue-id', session[UID])
+        return 'ID already issued.'
 
+# TODO: This will not work in a high request environment. Not threadsafe.
 def make_new_session(owner_id):
     new_game_id = rand_id(allow_spec_chars=False)
     game_sessions[new_game_id] = Game(new_game_id, [owner_id])
     return new_game_id
 
-@app.route("/lobby")
-def handle_lobby():
+@app.route("/create-game")
+def create_game():
     if UID in session:
-        game_id = make_new_session(UID)
-        join_room(game_id, UID)
+        game_id = make_new_session(session[UID])
         socketio.emit('session-init', game_id)
-    return "Lobby!"
+        # return redirect_ext_url('/lobby.html')
+        return 'Game Creation Succeeded!'
+    return 'Game Creation Failed!'
+
+
+######################################## SOCKETIO ##################################################
+
+@socketio.on('connect')
+def handle_connect():
+    print('-----SOCKETIO CONNECTION ESTABLISHED-----')
+
+def g_update(sio, g_id, pb=False):
+    if g_id in game_sessions:
+        if pb:
+            sio.emit('tick', game_sessions[g_id].serialize_into_pb())
+        else:
+            if DEBUG:
+                for row in game_sessions[g_id].map.to_str():
+                    print(row)
+            sio.emit('tick', {'map': game_sessions[g_id].map.to_str()})
+
+@socketio.on('join-game-with-id')
+def join_game_with_id(game_id, player_id):
+    # TODO: join validation scheme: check whitelists or blacklists, if any.
+    print("Player: " + player_id + " attempting to join the room: " + game_id)
+    if session[UID] == player_id and game_id in game_sessions:
+        print("Player: " + player_id + " joined the room: " + game_id + "!")
+        join_room(game_id)
+        if game_sessions[game_id].in_play():
+            g_update(socketio, game_id)
+            g_update(socketio, game_id, pb=True)
 
 @socketio.on('play')
 def start_game(owner_id, game_id):
     # MAY CAUSE ERROR. FLASK SESSION STATE MAY NOT PERSIST INTO THIS FUNCTION
-    if owner_id in session and player_in_game(owner_id, game_sessions, game_id):
+    print('checking for player')
+    if player_in_game(owner_id, game_sessions, game_id):
         print("PLAY START.")
         # Set game state to playing
         game_sessions[game_id].play()
@@ -77,38 +108,9 @@ def handle_player_keypress(key, player_id, game_id):
             print("Invalid update!")
             # raise ValueError
 
-@socketio.on('join-game-with-id')
-def join_game_with_id(game_id, player_id):
-    print('Join Request Received\n')
-    # TODO: join validation scheme: check whitelists or blacklists, if any.
-    if player_id in session and game_id in game_sessions:
-        print("Player: " + player_id + " joined the room: " + game_id + "!")
-        join_room(game_id)
-        if game_sessions[game_id].in_play():
-            g_update(socketio, game_id)
-            g_update(socketio, game_id, pb=True)
-
-def g_update(sio, g_id, pb=False):
-    if g_id in game_sessions:
-        if pb:
-            sio.emit('tick', game_sessions[g_id].serialize_into_pb())
-        else:
-            if DEBUG:
-                for row in game_sessions[g_id].map.to_str():
-                    print(row)
-            sio.emit('tick', {'map': game_sessions[g_id].map.to_str()})
-
-@socketio.on('connect')
-def handle_connect():
-    if not UID in session:
-        generated_uid = rand_id()
-        print("ISSUE ID")
-        socketio.emit('issue-id', generated_uid)
-        session[UID] = generated_uid
-
-# @socketio.on('disconnect')
-# def handle_disconnect():
-#     print('Client disconnected')
+@socketio.on('test')
+def test():
+    print('test comms received!')
 
 if __name__ == "__main__":
     print("----------RUNNING AS MAIN---------")
