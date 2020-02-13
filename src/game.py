@@ -14,6 +14,7 @@ MOVE_KEYS = []
 for key_set in KEYS:
 	MOVE_KEYS.extend(key_set)
 
+@unique
 class CellBase(Enum):
     WALL = 1
     FRIDGE = 2
@@ -149,6 +150,7 @@ def default_map(entities = []):
 		game_map[ent.loc[1]][ent.loc[0]].entity = ent
 	return game_map
 
+@unique
 class GameState(Enum):
 	QUEUEING = 1
 	STARTED = 2
@@ -281,6 +283,7 @@ class Game:
 		return pb.SerializeToString()
 		# TODO: Implement order serialization
 
+@unique
 class OrderItem(Enum):
 	# easy
 	HOT_DOG = 1

@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package chefmoji;
 
-// protoc -I=/Users/sarthakmore/Documents/CS188/chefmoji-backend/src/proto --python_out=/Users/sarthakmore/Documents/CS188/chefmoji-backend/src /Users/sarthakmore/Documents/CS188/chefmoji-backend/src/proto/player_action.proto
-
 message PlayerAction {
     string key_press = 1;
 }
