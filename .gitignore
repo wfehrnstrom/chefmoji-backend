@@ -3,3 +3,4 @@
 **/*.key
 **/*.pyc
 public/build
+**/__pycache__

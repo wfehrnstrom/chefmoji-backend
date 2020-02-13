@@ -224,7 +224,6 @@ class Game:
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
 		# items can be picked up with the 'e' key
-		self.entities = {"players": self.players, "items": [], }
 		self.points = 0
 		self.order_queue = []
 		assert self.map.valid()
