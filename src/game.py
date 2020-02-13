@@ -257,6 +257,7 @@ class Game:
 			return not self.map.cell(new_loc[0], new_loc[1]).collidable()
 		elif key is 'e':
 			# TODO: Implement Item pickup and drop
+			# if item in 4 directions, valid pickup
 			return True
 		else:
 			return False

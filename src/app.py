@@ -39,12 +39,13 @@ def handle_player_keypress(msg, game_id):
     # TODO: Handle specific player: for now, just automatically move first player
     
     if game_id in game_sessions:
-        print(msg)
         game = game_sessions[game_id]
-        decoded = PlayerAction.ParseFromString(msg.values())
-        if game.valid_player_update(PLAYER_1_ID, key.key_press):
+        decoded = PlayerAction()
+        decoded.ParseFromString(bytes(list(msg.values())))
+        print(decoded)   
+        if game.valid_player_update(PLAYER_1_ID, decoded.key_press):
             # change game state
-            game.update(PLAYER_1_ID, key.key_press)
+            game.update(PLAYER_1_ID, decoded.key_press)
             # send tick to all connected clients
             g_update(socketio, game_id, pb=True)
         else:
