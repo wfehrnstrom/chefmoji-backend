@@ -5,3 +5,8 @@ python-dotenv
 protobuf
 pathlib
 uwsgi --no-binary :all:
+Flask-Mail
+itsdangerous
+pysha3
+pyotp
+mysql-connector-python
