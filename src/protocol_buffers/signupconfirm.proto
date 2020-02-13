@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+message SignUpConfirmation {
+    bool success = 1;
+    enum ErrorCode {
+        good = 0;
+        notunique = 1;
+        notclean = 2;
+        notvalid = 3;
+        // includes database failure
+        otherfailures = 4;
+    }
+    ErrorCode email = 2;
+    ErrorCode playerid = 3;
+}

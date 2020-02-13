@@ -1,1 +1,8 @@
 Flask
+Flask-Mail
+itsdangerous
+protobuf
+pysha3
+pyotp
+mysql-connector-python
+python-dotenv

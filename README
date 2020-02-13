@@ -1,3 +1,11 @@
 This project requires that docker, python3.8 >=, pip, make and curl be pre-installed
 Install those, then run 'make install'. Then run the command `export FLASK_APP=src/app.py`.
 This tells the flask command where the application to run is located.
+
+===============================
+Notes on Protocol Buffers:
+.proto and compiled .py files are located under src/protocol_buffers
+e.g. to compile:
+protoc -I=/path/chefmoji-backend/src --python_out=/path/chefmoji-backend/src /path/chefmoji-backend/src/protocol_buffers/signupconfirm.proto
+protoc -I=/Users/ertheosiswadi/Projects/sixth-sense/chefmoji-backend/src --python_out=/Users/ertheosiswadi/Projects/sixth-sense/chefmoji-backend/src /Users/ertheosiswadi/Projects/sixth-sense/chefmoji-backend/src/protocol_buffers/signupconfirm.proto
+protoc -I=/Volumes/macOSMainDisk/ertheosiswadi/Projects/chefmoji-backend/src --python_out=/Volumes/macOSMainDisk/ertheosiswadi/Projects/chefmoji-backend/src /Volumes/macOSMainDisk/ertheosiswadi/Projects/chefmoji-backend/src/protocol_buffers/emailconfirm.proto

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+message EmailConfirmation {
+    bool success = 1;
+    enum ErrorCode {
+        doesnotexist = 0;
+        // if account has been previously confirmed
+        prevconfirmed = 1;
+        // if account has just been confirmed, check value of totpkey
+        justconfirmed = 2;
+        // includes database failure
+        otherfailures = 3;
+    }
+    ErrorCode status = 2;
+    string totpkey = 3;
+}
