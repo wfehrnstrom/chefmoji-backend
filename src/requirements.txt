@@ -4,7 +4,8 @@ gevent
 python-dotenv
 protobuf
 pathlib
-uwsgi --no-binary :all:
+--no-binary :uwsgi:
+uwsgi
 Flask-Mail
 itsdangerous
 pysha3

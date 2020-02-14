@@ -12,13 +12,8 @@ RUN rm -rf /usr/share/nginx/html/*
 WORKDIR /app
 COPY src/requirements.txt /tmp
 RUN export UWSGI_INCLUDES=/usr/include/
-RUN pip install -r /tmp/requirements.txt
+RUN pip3 install -r /tmp/requirements.txt
 
 ## Add a default user so we don't run as root and change the directories created
 #  to be owned by this user
 RUN addgroup -S chefteam && adduser -S chefdev -G chefteam
-RUN chown -R chefdev:chefteam /app /tmp /etc/nginx /etc/uwsgi /var/tmp/nginx /var/lib/nginx /var/log/nginx /var/run/nginx.pid 
-RUN chmod -R ug=rwx /etc/nginx /etc/uwsgi /var/tmp/nginx /var/lib/nginx 
-RUN chmod -R 755 /var/log/nginx /var/run/nginx.pid
-RUN chmod ugoa=r /etc/supervisord.conf /etc/nginx/nginx.conf /etc/uwsgi/chefmoji.ini
-RUN chmod -R ug+rwx /app
