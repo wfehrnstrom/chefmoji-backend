@@ -3,7 +3,7 @@ from functools import reduce
 import unittest
 from utils import eprint
 
-from game_update_pb2 import MapUpdate
+from protocol_buffers.game_update_pb2 import MapUpdate
 
 UP_KEYS = ['w', 'ArrowUp']
 LEFT_KEYS = ['a', 'ArrowLeft']

@@ -49,9 +49,9 @@ def hello():
 @app.route("/register")
 def register():
     # TODO: Get protobuf data from form
-    email = ''
-    password = ''
-    playerid = ''
+    email = 'esiswadi@g.ucla.edu'
+    password = 'passwd'
+    playerid = 'esiswadi'
 
     # Hash the password again using sha3
     password = sha3.sha3_256(password.encode('utf-8')).hexdigest()
