@@ -1,8 +1,13 @@
 Flask
+flask-socketio
+gevent
+python-dotenv
+protobuf
+pathlib
+--no-binary :uwsgi:
+uwsgi
 Flask-Mail
 itsdangerous
-protobuf
 pysha3
 pyotp
 mysql-connector-python
-python-dotenv

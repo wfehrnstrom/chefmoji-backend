@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package chefmoji;
+
+message MapUpdate {
+    // A global game synchronizing tick count may be used in the future.
+    //
+    // In format [ROW1_STR,ROW2_STR,ROW3_STR].
+    repeated string map = 1;
+    repeated PlayerUpdate players = 2; 
+    repeated OrderUpdate order = 3;
+}
+
+message PlayerUpdate {
+    // In format (MapX, MapY). X goes from left to right, and Y top to bottom of the map.
+    repeated uint32 position = 1;
+    string inventory = 2;
+    string id = 3;
+}
+
+enum OrderType {
+    HOT_DOG = 0;
+    PIZZA = 1;
+    TACO = 2;
+    GYRO = 3;
+    SANDWICH = 4;
+    HAMBURGER = 5;
+    WAFFLES = 6;
+    PANCAKES = 7;
+    EGGS = 8;
+    BURRITO = 9;
+    SUSHI = 10;
+    RAMEN = 11;
+    BENTO_BOX = 12;
+    STEW = 13;
+    CURRY_RICE = 14;
+}
+
+message OrderUpdate {
+    uint32 uid = 1;
+    // in Unix Epoch Seconds
+    uint32 registration_time = 2;
+    /* The OrderType is the type of food produced by cooking the recipe
+       There is no need to provide a list of ingredients for each recipe 
+       because both client and server will agree upon the recipe for each
+       order beforehand */
+    OrderType order_type = 3;
+    // Server To Client: This order has been fulfilled. Tear it down.
+    bool fulfilled = 4;
+}

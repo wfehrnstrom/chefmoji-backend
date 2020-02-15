@@ -1,9 +1,8 @@
 **/.env
 **/*.pem
-__pycache__/
-*.py[cod]
-src/instance/config.py
-./Makefile
-.DS_Store
+**/*.key
+public/build
+**/__pycache__
+**/*.py[cod]
 .vscode/
-src/.DS_Store
+**/.DS_Store
