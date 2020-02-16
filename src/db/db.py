@@ -7,7 +7,6 @@ from dotenv import load_dotenv, find_dotenv
 # TODO: AWS MySQL Version is 8.0.16. Check that mysql-python-connector is configured to cater to this version
 
 # TODO: Potential security vulnerability here if attacker hot swaps .env for their own.
-# load_dotenv(dotenv_path=Path('../.env'), verbose=True)
 load_dotenv(find_dotenv())
 
 class DBValueError(ValueError):
@@ -29,7 +28,6 @@ class DBman:
             raise DBValueError("Database credentials not set or table name invalid.")
 
     def db_credentials_found(self):
-        print(os.getenv("DB_HOSTNAME"))
         return (os.getenv("DB_HOSTNAME") is not None and os.getenv("DB_USERNAME") is not None and os.getenv("DB_PASSWORD") is not None
             and os.getenv("DB_NAME") is not None)
 
