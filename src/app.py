@@ -1,5 +1,6 @@
 from flask import Flask, session, flash, url_for, redirect
 from flask_socketio import SocketIO, join_room, leave_room
+from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
 from .utils import rand_id, player_in_game, redirect_ext_url, load_env_safe
 import os
@@ -16,7 +17,7 @@ from .protocol_buffers.player_action_pb2 import PlayerAction
 from .db.db import DBman
 from game import Game
 
-load_env_safe(Path('../.env'))
+load_dotenv(find_dotenv())
 
 DEBUG=(os.getenv('FLASK_ENV').lower()=='development')
 

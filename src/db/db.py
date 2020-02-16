@@ -2,12 +2,12 @@ import mysql.connector as mysql
 import pyotp
 import os
 from pathlib import Path
-from ..utils import load_env_safe
+from dotenv import load_dotenv, find_dotenv
 
 # TODO: AWS MySQL Version is 8.0.16. Check that mysql-python-connector is configured to cater to this version
 
 # TODO: Potential security vulnerability here if attacker hot swaps .env for their own.
-load_env_safe(Path('../.env'))
+load_dotenv(find_dotenv())
 
 class DBValueError(ValueError):
     pass
@@ -28,8 +28,8 @@ class DBman:
             raise DBValueError("Database credentials not set or table name invalid.")
 
     def db_credentials_found(self):
-        return (os.getenv("DB_HOSTNAME") and os.getenv("DB_USERNAME") and os.getenv("DB_PASSWORD") 
-            and os.getenv("DB_NAME"))
+        return (os.getenv("DB_HOSTNAME") is not None and os.getenv("DB_USERNAME") is not None and os.getenv("DB_PASSWORD") is not None
+            and os.getenv("DB_NAME") is not None)
 
     def db_read_query(self, query, params):
         try:
