@@ -22,7 +22,7 @@ class DBman:
                 passwd = os.getenv("DB_PASSWORD"),
                 database = os.getenv("DB_NAME")
             )
-            self.cursor = self.db.cursor()
+            self.cursor = self.db.cursor(buffered=True)
             self.tbl_user = 'tbl_user'
         else:
             raise DBValueError("Database credentials not set or table name invalid.")
@@ -36,6 +36,7 @@ class DBman:
             self.cursor.execute(query, params)
         except Exception as err:
             print('DB exception: %s' % err)
+            print(query)
             raise
 
     # insert, update, delete
@@ -46,6 +47,7 @@ class DBman:
         except Exception as err:
             self.db.rollback()
             print('DB exception: %s' % err)
+            print(query, params)
             raise
 
     def is_player_id_unique(self, player_id):
@@ -76,13 +78,14 @@ class DBman:
         else:
             return False
 
-    def is_account_verified(self, player_id='', email=''):
+    def is_account_verified(self, player_id=''):
         query = f"\
             SELECT t.verified\
               FROM {self.tbl_user} t\
-             WHERE t.email=%(email)s or t.player_id=%(player_id)s"
-        self.db_read_query(query, {'player_id': player_id, 'email': email})
+             WHERE t.player_id=%(player_id)s"
+        self.db_read_query(query, {'player_id': player_id})
         result = self.cursor.fetchone()
+        print(player_id, result[0])
         if result and result[0] == 1:
             return True
         else:
@@ -110,7 +113,7 @@ class DBman:
         return totpkey
 
     def check_login_info(self, player_id, password, totp, message):
-        message.success = False
+        message["success"] = False
         if self.is_account_verified(player_id):
             # check if cooldown, execute below, else say that it is in cooldown
             if not self.in_cooldown(player_id):
@@ -129,20 +132,20 @@ class DBman:
                     if totp_checker.verify(totp):
                         # reset counter = 0
                         self.update_counter(player_id, 'loginsuccessful')
-                        message.success = True
-                        message.status = message.ErrorCode.good
+                        message["success"] = True
+                        message["status"] = "GOOD"
                     else:
                         # counter++
                         self.counterpp(player_id)
-                        message.status = message.ErrorCode.badinput
+                        message["status"] = "BADINPUT"
                 else:
                     # counter++
                     self.counterpp(player_id)
-                    message.status = message.ErrorCode.badinput
+                    message["status"] = "BADINPUT"
             else:
-                message.status = message.ErrorCode.incooldown
+                message["status"] = "INCOOLDOWN"
         else:
-            message.status = message.ErrorCode.notverified
+            message["status"] = "NOTVERIFIED"
         self.update_timestamp(player_id)
         return message
 
