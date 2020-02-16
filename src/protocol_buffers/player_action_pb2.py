@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='chefmoji',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x13player_action.proto\x12\x08\x63hefmoji\"!\n\x0cPlayerAction\x12\x11\n\tkey_press\x18\x01 \x01(\x0c\x62\x06proto3'
+  serialized_pb=b'\n\x13player_action.proto\x12\x08\x63hefmoji\"!\n\x0cPlayerAction\x12\x11\n\tkey_press\x18\x01 \x01(\tb\x06proto3'
 )
 
 
@@ -33,8 +33,8 @@ _PLAYERACTION = _descriptor.Descriptor(
   fields=[
     _descriptor.FieldDescriptor(
       name='key_press', full_name='chefmoji.PlayerAction.key_press', index=0,
-      number=1, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),

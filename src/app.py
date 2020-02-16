@@ -2,7 +2,7 @@ from flask import Flask, session, flash, url_for, redirect
 from flask_socketio import SocketIO, join_room, leave_room
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
-from utils import rand_id, player_in_game, redirect_ext_url
+from utils import rand_id, player_in_game, redirect_ext_url, load_env_safe
 import os
 import argparse
 from signup_checker import signup_checker
@@ -13,8 +13,8 @@ import sha3
 import pyotp
 import os
 from protocol_buffers import emailconfirm_pb2, loginconfirm_pb2
+from protocol_buffers.player_action_pb2 import PlayerAction
 from db.db import DBman
-
 from game import Game
 
 load_dotenv(find_dotenv())
@@ -49,16 +49,16 @@ def hello():
 @app.route("/register")
 def register():
     # TODO: Get protobuf data from form
-    email = 'esiswadi@g.ucla.edu'
-    password = 'passwd'
-    playerid = 'esiswadi'
+    if DEBUG:
+        email = 'wfehrnstrom@gmail.com'
+        password = 'passwd'
+        playerid = 'wfehrnstrom'
 
     # Hash the password again using sha3
     password = sha3.sha3_256(password.encode('utf-8')).hexdigest()
 
     # Validate the email and playerid
     checker = signup_checker(email, playerid)
-
 
     if checker.message.success:
         try:
@@ -110,7 +110,7 @@ def email_confirm(token):
         else: #if email DOES NOT EXIST in the database
             toreturn.success = False
             toreturn.status = toreturn.ErrorCode.doesnotexist
-    except Exception as err:
+    except Exception:
         toreturn.success = False
         toreturn.status = toreturn.ErrorCode.otherfailures
         return toreturn.SerializeToString()
@@ -204,28 +204,26 @@ def join_game_with_id(game_id, player_id):
 @socketio.on('play')
 def start_game(owner_id, game_id):
     # MAY CAUSE ERROR. FLASK SESSION STATE MAY NOT PERSIST INTO THIS FUNCTION
-    print('checking for player')
     if player_in_game(owner_id, game_sessions, game_id):
-        print("PLAY START.")
         # Set game state to playing
         game_sessions[game_id].play()
         # Broadcast game start to all connected players
-        socketio.emit('tick', g_update(socketio, game_id), room=game_id)
+        socketio.emit('tick', g_update(socketio, game_id, pb=True), room=game_id)
 
 @socketio.on('keypress')
-def handle_player_keypress(key, player_id, game_id):
+def handle_player_keypress(msg, player_id, game_id):
     # TODO: Automatically make player moved the current session player.
     if player_in_game(player_id, game_sessions, game_id):
         game = game_sessions[game_id]
-        if game.valid_player_update(player_id, key):
+        decoded = PlayerAction()
+        decoded.ParseFromString(bytes(list(msg.values())))
+        if game.valid_player_update(player_id, decoded.key_press):
             # change game state
-            game.update(player_id, key)
+            game.update(player_id, decoded.key_press)
             # send tick to all connected clients
-            g_update(socketio, game_id)
             g_update(socketio, game_id, pb=True)
         else:
             print("Invalid update!")
-            # raise ValueError
 
 @socketio.on('test')
 def test():

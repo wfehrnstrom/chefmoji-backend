@@ -3,7 +3,7 @@ from functools import reduce
 import unittest
 from utils import eprint
 
-from protocol_buffers.game_update_pb2 import MapUpdate
+from protocol_buffers.game_update_pb2 import MapUpdate, MapRow
 
 UP_KEYS = ['w', 'ArrowUp']
 LEFT_KEYS = ['a', 'ArrowLeft']
@@ -14,6 +14,7 @@ MOVE_KEYS = []
 for key_set in KEYS:
 	MOVE_KEYS.extend(key_set)
 
+@unique
 class CellBase(Enum):
     WALL = 1
     FRIDGE = 2
@@ -23,10 +24,10 @@ class CellBase(Enum):
     STOVE = 6
     CUTTING_BOARD = 7
     TURNIN = 8
-    SOURCE = 9
+    PLATE = 9
 
     def to_str(self):
-	    reps = ['W', 'F', ' ', 'T', 'r', '0', 'K', '>', '@']
+	    reps = ['W', 'F', 'G', 'T', 'T🚰', 'T♨️', 'T🔪', 'T➡️', 'T🍽️']
 	    assert len(list(CellBase)) == len(reps)
 	    return reps[self.value-1]
 
@@ -62,17 +63,16 @@ class EntityType(Enum):
 	PINEAPPLE = 23
 	ORANGE = 24
 	MANGO = 25
-	SUSHI = 26
+	HOT_WATER = 26
 	# Prepared Items
 
 	# Player 
 	PLAYER = 27
-	# Misc
-	PLATE = 28
 
 	def to_str(self):
-		reps = ['🍞', '🍖', '🧀', '🍅', '🥬', '🧅', '🥓', '🥩', '🥛', '🥚', '🌾', '🧈', '🐄', '🐟', '🍚', '🍲', '🐖', '🍝', '🍥', '🥔', '🥕', '🧄', '🍍', '🍊', '🥭', '🍣', '🤓', '🍽️']
+		reps = ['🍞', '🍖', '🧀', '🍅', '🥬', '🧅', '🥓', '🥩', '🥛', '🥚', '🌾', '🧈', '🐄', '🐟', '🍚', '🍲', '🐖', '🍝', '🍥', '🥔', '🥕', '🧄', '🍍', '🍊', '🥭', '🍵', '🤓']
 		assert len(list(EntityType)) == len(reps)
+		print(reps[self.value-1])
 		return reps[self.value-1]
 
 class Entity:
@@ -94,7 +94,7 @@ class GameCell:
 	
 	def to_str(self):
 		if self.entity is not None:
-			return self.entity.to_str()
+			return self.base.to_str() + self.entity.to_str()
 		return self.base.to_str()
 	
 	def collidable(self):
@@ -135,7 +135,7 @@ def default_map(entities = []):
 		[GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FRIDGE, Entity(0, (2,1), EntityType.BUTTER)), GameCell(CellBase.FRIDGE), GameCell(CellBase.FRIDGE, Entity(1, (4,1), EntityType.EGG)), GameCell(CellBase.FRIDGE), GameCell(CellBase.FRIDGE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.SINK), GameCell(CellBase.TABLE), GameCell(CellBase.STOVE), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.CUTTING_BOARD), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE, Entity(2, (6,2), EntityType.MILK)), GameCell(CellBase.WALL), GameCell(CellBase.TABLE, Entity(3, (8,2), EntityType.FLOUR)), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
-		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE, Entity(4, (1,3), EntityType.CARROT)), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
+		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE, Entity(4, (1,3), EntityType.CARROT)), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE, Entity(3, (8,3), EntityType.NOODLES)), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE, Entity(5, (6,4), EntityType.CHEESE)), GameCell(CellBase.WALL), GameCell(CellBase.TABLE, Entity(6, (8,4), EntityType.RICE)), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE, Entity(7, (1,5), EntityType.LETTUCE)), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TURNIN), GameCell(CellBase.TURNIN)],
@@ -143,13 +143,14 @@ def default_map(entities = []):
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE, Entity(9, (6, 7), EntityType.RAW_PATTY)), GameCell(CellBase.WALL), GameCell(CellBase.TABLE, Entity(12, (8, 7), EntityType.BREAD)), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FRIDGE, Entity(10, (6,9), EntityType.FISH)), GameCell(CellBase.WALL), GameCell(CellBase.TABLE, Entity(11, (8,9), EntityType.ONION)), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.FLOOR), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
-		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FRIDGE), GameCell(CellBase.FRIDGE), GameCell(CellBase.FRIDGE, Entity(15, (4,10), EntityType.PORK)), GameCell(CellBase.FRIDGE), GameCell(CellBase.FRIDGE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE, Entity(203, (10,10),EntityType.POTATO)), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE, Entity(1001, (12, 10), EntityType.GARLIC)), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE, Entity(390, (15, 10), EntityType.PLATE)), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
+		[GameCell(CellBase.WALL), GameCell(CellBase.FRIDGE), GameCell(CellBase.FRIDGE, Entity(151, (2,10), EntityType.SAUSAGE)), GameCell(CellBase.FRIDGE, Entity(151, (3,10), EntityType.FISH_CAKE)), GameCell(CellBase.FRIDGE, Entity(15, (4,10), EntityType.PORK)), GameCell(CellBase.FRIDGE), GameCell(CellBase.FRIDGE), GameCell(CellBase.WALL), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE, Entity(203, (10,10),EntityType.POTATO)), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE, Entity(1001, (12, 10), EntityType.GARLIC)), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.PLATE), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.TABLE), GameCell(CellBase.WALL)],
 		[GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL)]
 	]
 	for ent in entities:
 		game_map[ent.loc[1]][ent.loc[0]].entity = ent
 	return game_map
 
+@unique
 class GameState(Enum):
 	QUEUEING = 1
 	PLAYING = 2
@@ -190,7 +191,14 @@ class Map:
 		return self.smooth() and self.closed()
 
 	def to_str(self):
-		return [reduce(lambda c1, c2: c1 + c2, [cell.to_str() for cell in row]) for row in self.map]
+		row_arr = []
+		for row in self.map:
+			pb_row = MapRow()
+			for cell in row:
+				pb_row.cells.append(cell.to_str())
+			row_arr.append(pb_row)
+		return row_arr
+		#return [reduce(lambda pb_row, cell: pb_row.cells.append(cell.to_str()), [cell for cell in row]) for row in self.map]
 
 	def debug(self):
 		for row in self.to_str():
@@ -261,6 +269,15 @@ class Game:
 		# update player location
 		self.map.move_entity_from_to(player.loc, player.move(key))
 
+	def play(self):
+		self.state = GameState.PLAYING
+
+	def in_play(self):
+		return self.state is GameState.PLAYING
+
+	def has_player(self, pid):
+		return pid in self.players
+
 	def serialize_into_pb(self):
 		pb = MapUpdate()
 		for row in self.map.to_str():
@@ -275,14 +292,55 @@ class Game:
 		return pb.SerializeToString()
 		# TODO: Implement order serialization
 
-	def play(self):
-		self.state = GameState.PLAYING
+@unique
+class OrderItem(Enum):
+	# easy
+	HOT_DOG = 1
+	PIZZA = 2
+	WAFFLES = 3
+	SUSHI = 4
+	EGGS = 5
 
-	def in_play(self):
-		return self.state is GameState.PLAYING
+	# medium
+	GYRO = 6
+	PANCAKES = 7
+	RAMEN = 8
+	STEW = 9
 
-	def has_player(self, pid):
-		return pid in self.players
+	# hard
+	BENTO_BOX = 10
+	TACO = 11
+	SANDWICH = 12
+	HAMBURGER = 13
+	BURRITO = 14
+	CURRY_RICE = 15
+
+	def get_recipe(self):
+		recipes = [
+			[EntityType.BREAD, EntityType.SAUSAGE], # hot dog
+			[EntityType.BREAD, EntityType.CHEESE, EntityType.TOMATO], # pizza
+			[EntityType.MILK, EntityType.EGG, EntityType.FLOUR], # waffles
+			[EntityType.FISH, EntityType.RICE], # sushi
+			[EntityType.EGG, EntityType.EGG, EntityType.EGG], # eggs
+			[EntityType.BREAD, EntityType.CHEESE, EntityType.LETTUCE, EntityType.TOMATO], # gyro
+			[EntityType.MILK, EntityType.EGG, EntityType.BUTTER, EntityType.FLOUR], # pancakes
+			[EntityType.HOT_WATER, EntityType.PORK, EntityType.NOODLES, EntityType.FISH_CAKE], # ramen
+			[EntityType.HOT_WATER, EntityType.POTATO, EntityType.LETTUCE, EntityType.CARROT], # stew
+			[EntityType.RICE, EntityType.FISH, EntityType.POTATO, EntityType.LETTUCE, EntityType.FISH_CAKE], # bento box
+			[EntityType.BREAD, EntityType.CHEESE, EntityType.RAW_PATTY, EntityType.LETTUCE, EntityType.ONION], # taco
+			[EntityType.BREAD, EntityType.CHEESE, EntityType.PORK, EntityType.LETTUCE, EntityType.TOMATO], # sandwich
+			[EntityType.BREAD, EntityType.CHEESE, EntityType.RAW_PATTY, EntityType.LETTUCE, EntityType.TOMATO, EntityType.ONION], # hamburger
+			[EntityType.BREAD, EntityType.CHEESE, EntityType.RAW_PATTY, EntityType.LETTUCE, EntityType.ONION], # burrito
+			[EntityType.RICE, EntityType.ONION, EntityType.GARLIC, EntityType.HOT_WATER, EntityType.CARROT] # curry rice
+		]
+		assert len(list(OrderItem)) == len(recipes)
+		return recipes[self.value-1]
+
+	def needs_to_be_cooked(self):
+		reps = [True, True, True, False, False, True, True, True, False, True, False, False, True, False, True]
+		assert len(list(OrderItem)) == len(reps)
+		print(reps[self.value-1])
+		return reps[self.value-1]
 
 class TestGameMethods(unittest.TestCase):
 	def test_map(self):

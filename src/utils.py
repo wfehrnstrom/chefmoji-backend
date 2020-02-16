@@ -2,6 +2,7 @@ import sys
 import random
 import os
 from flask import redirect
+from dotenv import load_dotenv
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -42,3 +43,12 @@ def redirect_ext_url(uri, proto=PROTO):
     if DOMAIN is None:
         raise ValueError
     return redirect(PROTO+DOMAIN+uri)
+
+def load_env_safe(path):
+    if os.path.isfile(path):
+        load_dotenv(dotenv_path=path)
+    else:
+        eprint('-----DIAGNOSTICS-----')
+        eprint('The current scripts are being executed from: ')
+        eprint(os.getcwd())
+        raise FileNotFoundError('.env file was not found, and so environment variables cannot be loaded')
