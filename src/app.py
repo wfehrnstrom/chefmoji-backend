@@ -2,19 +2,19 @@ from flask import Flask, session, flash, url_for, redirect
 from flask_socketio import SocketIO, join_room, leave_room
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
-from .utils import rand_id, player_in_game, redirect_ext_url, load_env_safe
+from utils import rand_id, player_in_game, redirect_ext_url, load_env_safe
 import os
 import argparse
-from .signup_checker import signup_checker
-from .mailconfirm.tokenconfirm import generate_confirmation_token, confirm_token
+from signup_checker import signup_checker
+from mailconfirm.tokenconfirm import generate_confirmation_token, confirm_token
 from flask_mail import Mail
 from flask_mail import Message
 import sha3
 import pyotp
 import os
-from .protocol_buffers import emailconfirm_pb2, loginconfirm_pb2
-from .protocol_buffers.player_action_pb2 import PlayerAction
-from .db.db import DBman
+from protocol_buffers import emailconfirm_pb2, loginconfirm_pb2
+from protocol_buffers.player_action_pb2 import PlayerAction
+from db.db import DBman
 from game import Game
 
 load_dotenv(find_dotenv())

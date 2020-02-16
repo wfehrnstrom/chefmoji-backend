@@ -191,15 +191,14 @@ class Map:
 		return self.smooth() and self.closed()
 
 	def to_str(self):
-		# row_arr = []
-		# for row in self.map:
-		# 	pb_row = MapRow()
-		# 	for cell in row:
-		# 		pb_row.cells.append(cell.to_str())
-		# 	row_arr.append(pb_row)
-		# return row_arr
-		# print(row_arr)
-		return [reduce(lambda pb_row, cell: pb_row.cells.append(cell.to_str()), [cell for cell in row]) for row in self.map]
+		row_arr = []
+		for row in self.map:
+			pb_row = MapRow()
+			for cell in row:
+				pb_row.cells.append(cell.to_str())
+			row_arr.append(pb_row)
+		return row_arr
+		#return [reduce(lambda pb_row, cell: pb_row.cells.append(cell.to_str()), [cell for cell in row]) for row in self.map]
 
 	def debug(self):
 		for row in self.to_str():
