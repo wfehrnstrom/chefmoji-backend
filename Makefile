@@ -10,17 +10,22 @@ install:
 	./$(INSTALL_SCRIPTS_DIR)/setupvenvwrapper
 	. /usr/local/bin/virtualenvwrapper.sh; mkvirtualenv chefmoji-backend; setvirtualenvproject $$VIRTUAL_ENV $(pwd)
 	./$(INSTALL_SCRIPTS_DIR)/installprotoc
-	pip install -r src/requirements.txt
+	pip3 install -r src/requirements.txt
+	export FLASK_APP=src/app.py
 
 proto:
-	protoc -I=$(CHEFMOJI_SRC_DIR)/proto --python_out=$(CHEFMOJI_SRC_DIR) src/proto/game_update.proto src/proto/player_action.proto
+	# TODO: Stop having to manually add more .proto files 
+	protoc -I=$(CHEFMOJI_SRC_DIR)/protocol_buffers --python_out=$(CHEFMOJI_SRC_DIR)/protocol_buffers \
+		emailconfirm.proto game_update.proto loginconfirm.proto player_action.proto signupconfirm.proto
 
 dev: proto
 	export FLASK_ENV=development && python3 $(CHEFMOJI_SRC_DIR)/app.py
 
-prod: proto
-	docker build . -t chefmoji
-	docker run -p $(SERVER_PORT):$(SERVER_PORT) chefmoji
+clean:
+	find . -type f -name '*_pb2.py' -delete
+
+build-base: proto  
+	docker build . -t base
 
 ec2-login:
 	ssh -i $(PEM_FILE) ec2-user@$(EC2_IP)

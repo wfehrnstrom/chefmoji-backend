@@ -3,7 +3,7 @@ from functools import reduce
 import unittest
 from utils import eprint
 
-from game_update_pb2 import MapUpdate, MapRow
+from protocol_buffers.game_update_pb2 import MapUpdate, MapRow
 
 UP_KEYS = ['w', 'ArrowUp']
 LEFT_KEYS = ['a', 'ArrowLeft']
@@ -153,7 +153,7 @@ def default_map(entities = []):
 @unique
 class GameState(Enum):
 	QUEUEING = 1
-	STARTED = 2
+	PLAYING = 2
 	PAUSED = 3
 	FINISHED = 4
 
@@ -191,16 +191,15 @@ class Map:
 		return self.smooth() and self.closed()
 
 	def to_str(self):
-		temp = []
-		for row in self.map:
-			temp2 = MapRow();
-			for cell in row:
-				temp2.row.append(cell.to_str())
-			temp.append(temp2)
-		return temp
-		print(temp)
-		# encoded = 
-		# return [reduce(lambda c1, c2: c1 + c2, [cell.to_str() for cell in row]) for row in self.map]
+		# row_arr = []
+		# for row in self.map:
+		# 	pb_row = MapRow()
+		# 	for cell in row:
+		# 		pb_row.cells.append(cell.to_str())
+		# 	row_arr.append(pb_row)
+		# return row_arr
+		# print(row_arr)
+		return [reduce(lambda pb_row, cell: pb_row.cells.append(cell.to_str()), [cell for cell in row]) for row in self.map]
 
 	def debug(self):
 		for row in self.to_str():
@@ -228,13 +227,12 @@ class Map:
 			new_cell.entity.loc = to
 
 class Game:
-	def __init__(self, session_id, player_ids=[], entities=[]):
+	def __init__(self, session_id, player_ids=[], entities=[], state = GameState.QUEUEING):
 		self.state = GameState.QUEUEING
 		# same as room identifier used by socket.io
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
 		# items can be picked up with the 'e' key
-		self.entities = {"players": self.players, "items": [], }
 		self.points = 0
 		self.order_queue = []
 		assert self.map.valid()
@@ -257,7 +255,7 @@ class Game:
 			print("New location: ")
 			print(new_loc)
 			return not self.map.cell(new_loc[0], new_loc[1]).collidable()
-		elif key is 'e':
+		elif key == 'e':
 			# TODO: Implement Item pickup and drop
 			return True
 		else:
@@ -265,9 +263,21 @@ class Game:
 
 	def update(self, player_id, key):
 		assert self.valid_player_update(player_id, key)
+		if not self.in_play():
+			# in this case, update is a no-op
+			return
 		player = self.players[player_id]
 		# update player location
 		self.map.move_entity_from_to(player.loc, player.move(key))
+
+	def play(self):
+		self.state = GameState.PLAYING
+
+	def in_play(self):
+		return self.state is GameState.PLAYING
+
+	def has_player(self, pid):
+		return pid in self.players
 
 	def serialize_into_pb(self):
 		pb = MapUpdate()
@@ -332,7 +342,6 @@ class OrderItem(Enum):
 		assert len(list(OrderItem)) == len(reps)
 		print(reps[self.value-1])
 		return reps[self.value-1]
-
 
 class TestGameMethods(unittest.TestCase):
 	def test_map(self):

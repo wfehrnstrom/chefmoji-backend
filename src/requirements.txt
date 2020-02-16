@@ -3,3 +3,11 @@ flask-socketio
 gevent
 python-dotenv
 protobuf
+pathlib
+--no-binary :uwsgi:
+uwsgi
+Flask-Mail
+itsdangerous
+pysha3
+pyotp
+mysql-connector-python

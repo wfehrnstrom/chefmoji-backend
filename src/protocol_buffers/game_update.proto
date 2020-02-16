@@ -3,9 +3,10 @@ syntax = "proto3";
 package chefmoji;
 
 message MapRow {
-    // In format [TILE1_STR,ROW2_STR,ROW3_STR]
-    // In format 'F '
-    repeated string row = 1;
+    // In format [TILE1_STR,TILE2_STR,TILE3_STR]
+    // In format 'F ': First character of each string value is a string representing the cell base.
+    // The second character of each string value represents an entity if any. Else, it is a space or nothing at all.
+    repeated string cells = 1;
 }
 
 message MapUpdate {
