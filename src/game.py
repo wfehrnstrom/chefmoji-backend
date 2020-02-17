@@ -2,7 +2,7 @@ from enum import Enum, unique
 from functools import reduce, partial
 import unittest
 from utils import eprint
-from order import Order, QueuedOrder
+from order import Order, QueuedOrder, ORDER_TTL
 
 from protocol_buffers.game_update_pb2 import MapUpdate, MapRow
 
@@ -336,7 +336,7 @@ class OrderItem(Enum):
 
 	# amount of time before order expires in seconds
 	def expires_in(self):
-		return 20
+		return ORDER_TTL
 
 	def get_recipe(self):
 		recipes = [

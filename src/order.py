@@ -1,6 +1,8 @@
 from threading import Timer
 from protocol_buffers.game_update_pb2 import OrderUpdate, OrderType
 
+ORDER_TTL = 20
+
 class Order:
     # @param OrderType type
     # @param integer expires_in: the length of time that the order takes to expire (become a failed order) in seconds
@@ -50,6 +52,4 @@ class QueuedOrder(Order):
 
     def queue(self):
         self.__start_timer.start()
-
-
 
