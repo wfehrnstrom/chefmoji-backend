@@ -26,21 +26,23 @@ message PlayerUpdate {
 }
 
 enum OrderType {
-    HOT_DOG = 0;
-    PIZZA = 1;
-    TACO = 2;
-    GYRO = 3;
-    SANDWICH = 4;
-    HAMBURGER = 5;
-    WAFFLES = 6;
-    PANCAKES = 7;
-    EGGS = 8;
-    BURRITO = 9;
-    SUSHI = 10;
-    RAMEN = 11;
-    BENTO_BOX = 12;
-    STEW = 13;
-    CURRY_RICE = 14;
+	HOT_DOG = 0;
+	PIZZA = 1;
+	WAFFLES = 2;
+	SUSHI = 3;
+	EGGS = 4;
+
+	GYRO = 5;
+	PANCAKES = 6;
+	RAMEN = 7;
+	STEW = 8;
+
+	BENTO_BOX = 9;
+	TACO = 10;
+	SANDWICH = 11;
+	HAMBURGER = 12;
+	BURRITO = 13;
+	CURRY_RICE = 14;
 }
 
 message OrderUpdate {

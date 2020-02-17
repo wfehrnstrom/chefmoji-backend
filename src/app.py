@@ -16,6 +16,7 @@ from protocol_buffers import emailconfirm_pb2, loginconfirm_pb2
 from protocol_buffers.player_action_pb2 import PlayerAction
 from db.db import DBman
 from game import Game, OrderItem
+import json
 
 load_dotenv(find_dotenv())
 
@@ -169,7 +170,8 @@ def make_new_session(owner_id):
 def create_game():
     if UID in session:
         game_id = make_new_session(session[UID])
-        socketio.emit('session-init', game_id)
+        cookbook = game_sessions[game_id].generateCookbook()
+        socketio.emit('session-init', {'game_id': game_id, 'cookbook': cookbook})
         # return redirect_ext_url('/lobby.html')
         return 'Game Creation Succeeded!'
     return 'Game Creation Failed!'
@@ -185,9 +187,6 @@ def g_update(sio, g_id, pb=False):
         if pb:
             sio.emit('tick', game_sessions[g_id].serialize_into_pb())
         else:
-            # if DEBUG:
-            #     for row in game_sessions[g_id].map.to_str():
-            #         print(row)
             sio.emit('tick', {'map': game_sessions[g_id].map.to_str()})
 
 @socketio.on('join-game-with-id')
