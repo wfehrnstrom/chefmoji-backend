@@ -3,7 +3,9 @@ from functools import reduce, partial
 import unittest
 from utils import eprint
 from order import Order, QueuedOrder
-
+from threading import Timer, Thread, Event
+import random
+import time
 from protocol_buffers.game_update_pb2 import MapUpdate, MapRow
 
 UP_KEYS = ['w', 'ArrowUp']
@@ -73,7 +75,13 @@ class EntityType(Enum):
 	def to_str(self):
 		reps = ['🍞', '🍖', '🧀', '🍅', '🥬', '🧅', '🥓', '🥩', '🥛', '🥚', '🌾', '🧈', '🐄', '🐟', '🍚', '🍲', '🐖', '🍝', '🍥', '🥔', '🥕', '🧄', '🍍', '🍊', '🥭', '🍵', '🤓']
 		assert len(list(EntityType)) == len(reps)
-		print(reps[self.value-1])
+		# print(reps[self.value-1])
+		return reps[self.value-1]
+	
+	def needs_to_be_chopped(self):
+		reps = [False, False, False, True, True, True, False, False, False, False, False, False, True, True, False, False, True, False, False, True, True, True, True, True, True, False, False]
+		assert len(list(EntityType)) == len(reps)
+		# print(reps[self.value-1])
 		return reps[self.value-1]
 
 class Entity:
@@ -99,9 +107,9 @@ class GameCell:
 		return self.base.to_str()
 	
 	def collidable(self):
-		print(self.base.name)
-		if self.entity:
-			print(self.entity.type)
+		# print(self.base.name)
+		# if self.entity:
+		# 	print(self.entity.type)
 		return self.base.collidable() or (self.entity is not None)
 
 	def place(self, entity):
@@ -226,6 +234,24 @@ class Map:
 			cell.place(None)
 			new_cell.entity.loc = to
 
+class OrderTimer():
+   def __init__(self, t, hFunction):
+      self.t = t
+      self.hFunction = hFunction
+      self.thread = Timer(self.t, self.handle_function)
+
+   def handle_function(self):
+      self.hFunction()
+      self.thread = Timer(self.t, self.handle_function)
+      self.thread.start()
+
+   def start(self):
+      self.thread.start()
+
+   def cancel(self):
+      self.thread.cancel()
+
+
 class Game:
 	def __init__(self, sio, session_id, player_ids=[], entities=[], orders=[], state = GameState.QUEUEING):
 		self.sio = sio
@@ -234,10 +260,19 @@ class Game:
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
 		self.points = 0
-		self.__init_orders(sio, orders)
+		self.order_timer = OrderTimer(10, self.generateOrder)
+		self.order_timer.start()
+		self.orders = []
+		# self.__init_orders(sio, orders)
 		assert self.map.valid()
 		assert len(self.players) == 1
 	
+	def generateOrder(self):
+		item = random.choice(list(OrderItem))
+		base_order = Order(len(self.orders) + 1, item, on_expire=None)
+		print('in initialization of orders:', base_order.type.name)
+		self.orders.append(QueuedOrder(base_order, partial(self.send_order, self.sio, base_order)))
+
 	def __init_map(self, player_ids, entities):
 		i = 0
 		starting_locs = [[2,6], [13,6]]
@@ -310,7 +345,20 @@ class Game:
 				player.inventory = p.inventory
 		return pb.SerializeToString()
 		# TODO: Implement order serialization
-
+	
+	def generateCookbook(self):
+		cookbook = {}
+		for item in list(OrderItem):
+			item_details = {}
+			item_details['name'] = item.name
+			item_details['emoji'] = item.to_str()
+			item_details['difficulty'] = item.get_difficulty()
+			item_details['ingredients'] = []
+			for ingredient in item.get_recipe():
+				item_details['ingredients'].append({ 'emoji' : ingredient.to_str(), 'chopped' : ingredient.needs_to_be_chopped()})
+			item_details['cooked'] = item.needs_to_be_cooked()
+			cookbook[item.to_str()] = item_details
+		return cookbook
 @unique
 class OrderItem(Enum):
 	# easy
@@ -334,9 +382,22 @@ class OrderItem(Enum):
 	BURRITO = 14
 	CURRY_RICE = 15
 
+	def get_difficulty(self):
+		if self.value in [1, 2, 3, 4, 5]:
+			return 1
+		if self.value in [6, 7, 8, 9]:
+			return 2
+		if self.value in [10, 11, 12, 13, 14, 15]:
+			return 3
+		
 	# amount of time before order expires in seconds
 	def expires_in(self):
 		return 20
+
+	def to_str(self):
+		reps = ['🌭', '🍕', '🧇', '🍣', '🍳', '🥙', '🥞', '🍜', '🍲', '🍱', '🌮', '🥪', '🍔', '🌯', '🍛']
+		assert len(list(OrderItem)) == len(reps)
+		return reps[self.value-1]
 
 	def get_recipe(self):
 		recipes = [
@@ -362,7 +423,6 @@ class OrderItem(Enum):
 	def needs_to_be_cooked(self):
 		reps = [True, True, True, False, False, True, True, True, False, True, False, False, True, False, True]
 		assert len(list(OrderItem)) == len(reps)
-		print(reps[self.value-1])
 		return reps[self.value-1]
 
 class TestGameMethods(unittest.TestCase):
