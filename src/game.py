@@ -1,7 +1,8 @@
 from enum import Enum, unique
-from functools import reduce
+from functools import reduce, partial
 import unittest
 from utils import eprint
+from order import Order, QueuedOrder
 
 from protocol_buffers.game_update_pb2 import MapUpdate, MapRow
 
@@ -226,14 +227,14 @@ class Map:
 			new_cell.entity.loc = to
 
 class Game:
-	def __init__(self, session_id, player_ids=[], entities=[], state = GameState.QUEUEING):
-		self.state = GameState.QUEUEING
+	def __init__(self, sio, session_id, player_ids=[], entities=[], orders=[], state = GameState.QUEUEING):
+		self.sio = sio
+		self.state = state
 		# same as room identifier used by socket.io
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
-		# items can be picked up with the 'e' key
 		self.points = 0
-		self.order_queue = []
+		self.__init_orders(sio, orders)
 		assert self.map.valid()
 		assert len(self.players) == 1
 	
@@ -244,15 +245,31 @@ class Game:
 		for p_id in player_ids:
 			self.players[p_id] = Player(p_id, starting_locs[i], self)
 			i += 1
-		self.map = Map([ self.players[player_ids[0]] ])
+			if i > 1:
+				break
+		self.map = Map([ player for player in self.players.values() ])
 		assert len(player_ids) <= 2
+
+	def send_order(self, sio, order):
+		print("-------------ORDER SENT OUT--------------")
+		print("---name---")
+		print(order.type.name)
+		print(order.serialize())
+		sio.emit('order', order.serialize())
+
+	# orders is a list of order types
+	def __init_orders(self, sio, order_types):
+		self.orders = []
+		for i in range(0, len(order_types)):
+			base_order = Order(i, order_types[i], on_expire=None)
+			print('in initialization of orders: ')
+			print(base_order.type.name)
+			self.orders.append(QueuedOrder(base_order, partial(self.send_order, sio, base_order)))
 
 	def valid_player_update(self, player_id, key):
 		player = self.players[player_id]
 		if key in MOVE_KEYS:
 			new_loc = player.move(key)
-			print("New location: ")
-			print(new_loc)
 			return not self.map.cell(new_loc[0], new_loc[1]).collidable()
 		elif key == 'e':
 			# TODO: Implement Item pickup and drop
@@ -271,6 +288,8 @@ class Game:
 
 	def play(self):
 		self.state = GameState.PLAYING
+		for order in self.orders:
+			order.queue()
 
 	def in_play(self):
 		return self.state is GameState.PLAYING
@@ -314,6 +333,10 @@ class OrderItem(Enum):
 	HAMBURGER = 13
 	BURRITO = 14
 	CURRY_RICE = 15
+
+	# amount of time before order expires in seconds
+	def expires_in(self):
+		return 20
 
 	def get_recipe(self):
 		recipes = [

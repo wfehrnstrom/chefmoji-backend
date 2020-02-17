@@ -15,7 +15,7 @@ import os
 from protocol_buffers import emailconfirm_pb2, loginconfirm_pb2
 from protocol_buffers.player_action_pb2 import PlayerAction
 from db.db import DBman
-from game import Game
+from game import Game, OrderItem
 
 load_dotenv(find_dotenv())
 
@@ -162,7 +162,7 @@ def issue_id():
 # TODO: This will not work in a high request environment. Not threadsafe.
 def make_new_session(owner_id):
     new_game_id = rand_id(allow_spec_chars=False)
-    game_sessions[new_game_id] = Game(new_game_id, [owner_id])
+    game_sessions[new_game_id] = Game(socketio, new_game_id, [owner_id], orders=[OrderItem.HOT_DOG, OrderItem.PIZZA])
     return new_game_id
 
 @app.route("/create-game")
@@ -185,9 +185,9 @@ def g_update(sio, g_id, pb=False):
         if pb:
             sio.emit('tick', game_sessions[g_id].serialize_into_pb())
         else:
-            if DEBUG:
-                for row in game_sessions[g_id].map.to_str():
-                    print(row)
+            # if DEBUG:
+            #     for row in game_sessions[g_id].map.to_str():
+            #         print(row)
             sio.emit('tick', {'map': game_sessions[g_id].map.to_str()})
 
 @socketio.on('join-game-with-id')

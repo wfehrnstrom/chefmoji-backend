@@ -45,7 +45,7 @@ enum OrderType {
 
 message OrderUpdate {
     uint32 uid = 1;
-    // in Unix Epoch Seconds
+    // in time since game start
     uint32 registration_time = 2;
     /* The OrderType is the type of food produced by cooking the recipe
        There is no need to provide a list of ingredients for each recipe 
