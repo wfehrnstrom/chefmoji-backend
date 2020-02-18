@@ -45,7 +45,6 @@ game_sessions = dict()
 
 @app.route("/register", methods = ['POST'])
 def register():
-    # TODO: Get protobuf data from form
     client_input = request.json
     playerid = client_input['playerid']
     password = client_input['password']
@@ -122,11 +121,6 @@ def email_confirm(token):
 
 @app.route("/login", methods = ['POST'])
 def login():
-    # TODO: Get protobuf data from form
-    # formdata.ParseFromString(request.form.get('protobuf'))
-    # playerid = formdata.message.playerid
-    # password = formdata.message.password
-    # totp = formdata.message.password
     client_input = request.json
     playerid = client_input['playerid']
     password = client_input['password']
@@ -150,7 +144,7 @@ def login():
         return json.dumps(toreturn), 400
 
     if toreturn["success"]:
-        response = make_response(redirect(url_for('redir')))
+        response = make_response(redirect(url_for('lobby.html', _external=True)))
         response.status_code = 302
         response.headers["Set-Cookie"] = "HttpOnly;SameSite=Strict"
         response.set_cookie('session-key', rand_id())
@@ -172,22 +166,25 @@ def login():
 #         return 'ID already issued.'
 
 # TODO: This will not work in a high request environment. Not threadsafe.
-def make_new_session(owner_id):
+def make_new_session(owner_session_key):
     new_game_id = rand_id(allow_spec_chars=False)
     game_sessions[new_game_id] = Game(new_game_id, [owner_id])
     return new_game_id
 
-@app.route("/create-game", method="POST")
+@app.route("/create-game", methods=["POST"])
 def create_game():
     # TODO: Add client auth checking
     if UIDS in session:
         session_keys = session[UIDS]
-        if session_keys[player_id] == client_supplied_session_key:
-            game_id = make_new_session(session[UIDS])
+        supplied_session_key = request.json['sessionkey']
+        player_id = request.json['playerid']
+        if session_keys[player_id] == supplied_session_key:
+            game_id = make_new_session(player_id)
             # Final message without additional room specifier.
             socketio.emit('session-init', game_id)
             return 'Game Creation Succeeded!'
-    return 'Game Creation Failed!'
+        return 'Invalid Session Key.'
+    return 'Session UIDS var not set.'
 
 ######################################## SOCKETIO ##################################################
 
