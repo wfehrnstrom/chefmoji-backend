@@ -43,19 +43,6 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 
 game_sessions = dict()
 
-@app.route('/test')
-def hello():
-    return ",".join(os.listdir('/var/www/data'))
-    return ",".join(os.listdir('/var/www/data'))
-
-# @app.route("/")
-# def home():
-#     return send_from_directory('/var/www/data', 'index.html')
-
-# @app.route("/<path:path>")
-# def homesupporting(path):
-#     return send_from_directory('/var/www/data', path)
-
 @app.route("/register", methods = ['POST'])
 def register():
     # TODO: Get protobuf data from form
