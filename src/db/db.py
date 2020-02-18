@@ -64,7 +64,7 @@ class DBman:
         else:
             return False
 
-    def is_email_unique(self, email):
+    def email_exists_in_db(self, email):
         query = f"\
             SELECT COUNT(1)\
               FROM {self.tbl_user} t\
@@ -74,9 +74,9 @@ class DBman:
         self.db_read_query(query, params)
         result = self.cursor.fetchone()
         if result and result[0] == 0:
-            return True
-        else:
             return False
+        else:
+            return True
 
     def is_account_verified(self, player_id=''):
         query = f"\
@@ -85,7 +85,7 @@ class DBman:
              WHERE t.player_id=%(player_id)s"
         self.db_read_query(query, {'player_id': player_id})
         result = self.cursor.fetchone()
-        print(player_id, result[0])
+
         if result and result[0] == 1:
             return True
         else:
@@ -98,7 +98,7 @@ class DBman:
              WHERE t.email=%(email)s"
         self.db_read_query(query, {'email': email})
         result = self.cursor.fetchone()
-        print(email, result[0])
+        
         if result and result[0] == 1:
             return True
         else:

@@ -1,4 +1,4 @@
-from flask import Flask, flash, url_for, redirect, send_from_directory, request, render_template
+from flask import Flask, flash, url_for, redirect, send_from_directory, request, render_template, make_response
 from flask_socketio import SocketIO, join_room, leave_room
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
@@ -42,6 +42,11 @@ mail = Mail(app)
 socketio = SocketIO(app, cors_allowed_origins='*')
 
 game_sessions = dict()
+
+@app.route("/redir")
+# some dummy redir
+def redir():
+    return render_template('emailconfirm.html', status='GOOD', success=True, totpkey='asdfhjhdsf13')
 
 @app.route("/register", methods = ['POST'])
 def register():
@@ -98,7 +103,7 @@ def email_confirm(token):
         return render_template('emailconfirm.html', status=toreturn["status"], success=toreturn["success"], totpkey=toreturn["totpkey"])
 
     try:
-        if not db.is_email_unique(email): # if email exists in the database
+        if db.email_exists_in_db(email): # if email exists in the database
             if db.is_account_verified2(email):
                 toreturn["success"] = True
                 toreturn["status"] = "PREVCONFIRMED"
@@ -151,9 +156,15 @@ def login():
         toreturn["status"] = "OTHERFAILURES"
         return json.dumps(toreturn)
 
-    # if toreturn.success:
-        # TODO: redirect to home page
-    return json.dumps(toreturn)
+    if toreturn["success"]:
+        response = make_response(redirect(url_for('redir')))
+        response.status_code = 302
+        response.headers["Set-Cookie"] = "HttpOnly;SameSite=Strict"
+        response.set_cookie('session-key', rand_id())
+        response.set_cookie('player-id', playerid)
+        return response
+    else:
+        return json.dumps(toreturn), 400
 
 # TODO: IDs will be issued through the TOTP mechanism Ertheo has setup, and not through this dummy route.
 @app.route('/issue-id')
