@@ -261,7 +261,7 @@ class Game:
 		self.__init_map(player_ids, entities)
 		self.points = 0
 		self.order_timer = OrderTimer(10, self.generateOrder)
-		self.order_timer.start()
+		
 		self.orders = []
 		# self.__init_orders(sio, orders)
 		assert self.map.valid()
@@ -271,7 +271,7 @@ class Game:
 		item = random.choice(list(OrderItem))
 		base_order = Order(len(self.orders) + 1, item, on_expire=None)
 		print('in initialization of orders:', base_order.type.name)
-		self.orders.append(QueuedOrder(base_order, partial(self.send_order, self.sio, base_order)))
+		self.orders.append(QueuedOrder(base_order, partial(self.send_order, self.sio, base_order), 3))
 
 	def __init_map(self, player_ids, entities):
 		i = 0
@@ -289,8 +289,8 @@ class Game:
 		print("-------------ORDER SENT OUT--------------")
 		print("---name---")
 		print(order.type.name)
-		print(order.serialize())
-		sio.emit('order', order.serialize())
+		print(serialized := order.serialize())
+		sio.emit('order', serialized)
 
 	# orders is a list of order types
 	def __init_orders(self, sio, order_types):
@@ -323,8 +323,9 @@ class Game:
 
 	def play(self):
 		self.state = GameState.PLAYING
-		for order in self.orders:
-			order.queue()
+		self.order_timer.start()
+		# for order in self.orders:
+		# 	order.queue()
 
 	def in_play(self):
 		return self.state is GameState.PLAYING

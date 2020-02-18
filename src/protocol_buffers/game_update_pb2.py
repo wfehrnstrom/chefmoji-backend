@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='chefmoji',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x11game_update.proto\x12\x08\x63hefmoji\"\x17\n\x06MapRow\x12\r\n\x05\x63\x65lls\x18\x01 \x03(\t\"y\n\tMapUpdate\x12\x1d\n\x03map\x18\x01 \x03(\x0b\x32\x10.chefmoji.MapRow\x12\'\n\x07players\x18\x02 \x03(\x0b\x32\x16.chefmoji.PlayerUpdate\x12$\n\x05order\x18\x03 \x03(\x0b\x32\x15.chefmoji.OrderUpdate\"?\n\x0cPlayerUpdate\x12\x10\n\x08position\x18\x01 \x03(\r\x12\x11\n\tinventory\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\"q\n\x0bOrderUpdate\x12\x0b\n\x03uid\x18\x01 \x01(\r\x12\x19\n\x11registration_time\x18\x02 \x01(\r\x12\'\n\norder_type\x18\x03 \x01(\x0e\x32\x13.chefmoji.OrderType\x12\x11\n\tfulfilled\x18\x04 \x01(\x08*\xc5\x01\n\tOrderType\x12\x0b\n\x07HOT_DOG\x10\x00\x12\t\n\x05PIZZA\x10\x01\x12\x08\n\x04TACO\x10\x02\x12\x08\n\x04GYRO\x10\x03\x12\x0c\n\x08SANDWICH\x10\x04\x12\r\n\tHAMBURGER\x10\x05\x12\x0b\n\x07WAFFLES\x10\x06\x12\x0c\n\x08PANCAKES\x10\x07\x12\x08\n\x04\x45GGS\x10\x08\x12\x0b\n\x07\x42URRITO\x10\t\x12\t\n\x05SUSHI\x10\n\x12\t\n\x05RAMEN\x10\x0b\x12\r\n\tBENTO_BOX\x10\x0c\x12\x08\n\x04STEW\x10\r\x12\x0e\n\nCURRY_RICE\x10\x0e\x62\x06proto3'
+  serialized_pb=b'\n\x11game_update.proto\x12\x08\x63hefmoji\"\x17\n\x06MapRow\x12\r\n\x05\x63\x65lls\x18\x01 \x03(\t\"y\n\tMapUpdate\x12\x1d\n\x03map\x18\x01 \x03(\x0b\x32\x10.chefmoji.MapRow\x12\'\n\x07players\x18\x02 \x03(\x0b\x32\x16.chefmoji.PlayerUpdate\x12$\n\x05order\x18\x03 \x03(\x0b\x32\x15.chefmoji.OrderUpdate\"?\n\x0cPlayerUpdate\x12\x10\n\x08position\x18\x01 \x03(\r\x12\x11\n\tinventory\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\"q\n\x0bOrderUpdate\x12\x0b\n\x03uid\x18\x01 \x01(\r\x12\x19\n\x11registration_time\x18\x02 \x01(\r\x12\'\n\norder_type\x18\x03 \x01(\x0e\x32\x13.chefmoji.OrderType\x12\x11\n\tfulfilled\x18\x04 \x01(\x08*\xc5\x01\n\tOrderType\x12\x0b\n\x07HOT_DOG\x10\x00\x12\t\n\x05PIZZA\x10\x01\x12\x0b\n\x07WAFFLES\x10\x02\x12\t\n\x05SUSHI\x10\x03\x12\x08\n\x04\x45GGS\x10\x04\x12\x08\n\x04GYRO\x10\x05\x12\x0c\n\x08PANCAKES\x10\x06\x12\t\n\x05RAMEN\x10\x07\x12\x08\n\x04STEW\x10\x08\x12\r\n\tBENTO_BOX\x10\t\x12\x08\n\x04TACO\x10\n\x12\x0c\n\x08SANDWICH\x10\x0b\x12\r\n\tHAMBURGER\x10\x0c\x12\x0b\n\x07\x42URRITO\x10\r\x12\x0e\n\nCURRY_RICE\x10\x0e\x62\x06proto3'
 )
 
 _ORDERTYPE = _descriptor.EnumDescriptor(
@@ -37,51 +37,51 @@ _ORDERTYPE = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='TACO', index=2, number=2,
+      name='WAFFLES', index=2, number=2,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='GYRO', index=3, number=3,
+      name='SUSHI', index=3, number=3,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='SANDWICH', index=4, number=4,
+      name='EGGS', index=4, number=4,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='HAMBURGER', index=5, number=5,
+      name='GYRO', index=5, number=5,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='WAFFLES', index=6, number=6,
+      name='PANCAKES', index=6, number=6,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='PANCAKES', index=7, number=7,
+      name='RAMEN', index=7, number=7,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='EGGS', index=8, number=8,
+      name='STEW', index=8, number=8,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='BURRITO', index=9, number=9,
+      name='BENTO_BOX', index=9, number=9,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='SUSHI', index=10, number=10,
+      name='TACO', index=10, number=10,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='RAMEN', index=11, number=11,
+      name='SANDWICH', index=11, number=11,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='BENTO_BOX', index=12, number=12,
+      name='HAMBURGER', index=12, number=12,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='STEW', index=13, number=13,
+      name='BURRITO', index=13, number=13,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
@@ -99,18 +99,18 @@ _sym_db.RegisterEnumDescriptor(_ORDERTYPE)
 OrderType = enum_type_wrapper.EnumTypeWrapper(_ORDERTYPE)
 HOT_DOG = 0
 PIZZA = 1
-TACO = 2
-GYRO = 3
-SANDWICH = 4
-HAMBURGER = 5
-WAFFLES = 6
-PANCAKES = 7
-EGGS = 8
-BURRITO = 9
-SUSHI = 10
-RAMEN = 11
-BENTO_BOX = 12
-STEW = 13
+WAFFLES = 2
+SUSHI = 3
+EGGS = 4
+GYRO = 5
+PANCAKES = 6
+RAMEN = 7
+STEW = 8
+BENTO_BOX = 9
+TACO = 10
+SANDWICH = 11
+HAMBURGER = 12
+BURRITO = 13
 CURRY_RICE = 14
 
 
