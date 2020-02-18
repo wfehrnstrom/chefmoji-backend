@@ -22,7 +22,7 @@ load_dotenv(find_dotenv())
 DEBUG=(os.getenv('FLASK_ENV').lower()=='development')
 
 # KEY CONSTANTS
-UID = 'uid'
+UIDS = 'uids'
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -148,16 +148,16 @@ def login():
     return toreturn.SerializeToString()
 
 # TODO: IDs will be issued through the TOTP mechanism Ertheo has setup, and not through this dummy route.
-@app.route('/issue-id')
-def issue_id():
-    if not UID in session:
-        generated_uid = rand_id()
-        session[UID] = generated_uid
-        socketio.emit('issue-id', generated_uid)
-        return 'ID Issued.'
-    else:
-        socketio.emit('issue-id', session[UID])
-        return 'ID already issued.'
+# @app.route('/issue-id')
+# def issue_id():
+#     if not UID in session:
+#         generated_uid = rand_id()
+#         session[UID] = generated_uid
+#         socketio.emit('issue-id', generated_uid)
+#         return 'ID Issued.'
+#     else:
+#         socketio.emit('issue-id', session[UID])
+#         return 'ID already issued.'
 
 # TODO: This will not work in a high request environment. Not threadsafe.
 def make_new_session(owner_id):
@@ -165,13 +165,16 @@ def make_new_session(owner_id):
     game_sessions[new_game_id] = Game(new_game_id, [owner_id])
     return new_game_id
 
-@app.route("/create-game")
+@app.route("/create-game", method="POST")
 def create_game():
-    if UID in session:
-        game_id = make_new_session(session[UID])
-        socketio.emit('session-init', game_id)
-        # return redirect_ext_url('/lobby.html')
-        return 'Game Creation Succeeded!'
+    # TODO: Add client auth checking
+    if UIDS in session:
+        session_keys = session[UIDS]
+        if session_keys[player_id] == client_supplied_session_key:
+            game_id = make_new_session(session[UIDS])
+            # Final message without additional room specifier.
+            socketio.emit('session-init', game_id)
+            return 'Game Creation Succeeded!'
     return 'Game Creation Failed!'
 
 ######################################## SOCKETIO ##################################################
@@ -180,26 +183,26 @@ def create_game():
 def handle_connect():
     print('-----SOCKETIO CONNECTION ESTABLISHED-----')
 
-def g_update(sio, g_id, pb=False):
+def broadcast_game(sio, g_id, pb=False):
     if g_id in game_sessions:
         if pb:
-            sio.emit('tick', game_sessions[g_id].serialize_into_pb())
+            sio.emit('tick', game_sessions[g_id].serialize_into_pb(), room=g_id)
         else:
             if DEBUG:
                 for row in game_sessions[g_id].map.to_str():
                     print(row)
-            sio.emit('tick', {'map': game_sessions[g_id].map.to_str()})
+            sio.emit('tick', {'map': game_sessions[g_id].map.to_str()}, room=g_id)
 
 @socketio.on('join-game-with-id')
-def join_game_with_id(game_id, player_id):
+def join_game_with_id(game_id, player_id, session_key):
     # TODO: join validation scheme: check whitelists or blacklists, if any.
     print("Player: " + player_id + " attempting to join the room: " + game_id)
-    if session[UID] == player_id and game_id in game_sessions:
+    if session[] == player_id and game_id in game_sessions:
         print("Player: " + player_id + " joined the room: " + game_id + "!")
         join_room(game_id)
         if game_sessions[game_id].in_play():
-            g_update(socketio, game_id)
-            g_update(socketio, game_id, pb=True)
+            # broadcast_game(socketio, game_id)
+            broadcast_game(socketio, game_id, pb=True)
 
 @socketio.on('play')
 def start_game(owner_id, game_id):
@@ -208,7 +211,7 @@ def start_game(owner_id, game_id):
         # Set game state to playing
         game_sessions[game_id].play()
         # Broadcast game start to all connected players
-        socketio.emit('tick', g_update(socketio, game_id, pb=True), room=game_id)
+        socketio.emit('tick', broadcast_game(socketio, game_id, pb=True), room=game_id)
 
 @socketio.on('keypress')
 def handle_player_keypress(msg, player_id, game_id):
@@ -221,7 +224,7 @@ def handle_player_keypress(msg, player_id, game_id):
             # change game state
             game.update(player_id, decoded.key_press)
             # send tick to all connected clients
-            g_update(socketio, game_id, pb=True)
+            broadcast_game(socketio, game_id, pb=True)
         else:
             print("Invalid update!")
 
