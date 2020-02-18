@@ -43,11 +43,6 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 
 game_sessions = dict()
 
-@app.route("/redir")
-# some dummy redir
-def redir():
-    return render_template('emailconfirm.html', status='GOOD', success=True, totpkey='asdfhjhdsf13')
-
 @app.route("/register", methods = ['POST'])
 def register():
     # TODO: Get protobuf data from form
@@ -75,11 +70,9 @@ def register():
         try:
             # TODO: Look at above to do, make sure write success before sending mail
             token = generate_confirmation_token(email, os.getenv('SECRET_KEY'), os.getenv('SECRET_SALT'))
-            recipients = email
-            if True:
-                recipients = os.getenv('MAIL_USERNAME')
+            recipients = [email]
             msg = Message('Hello, I am The chefmoji👨‍🍳👩‍🍳', sender = os.getenv('MAIL_USERNAME'),\
-                    recipients = [recipients])
+                    recipients = recipients)
             msg.body = url_for('email_confirm', token = token, _external=True)
             mail.send(msg)
         except Exception as err:
@@ -154,7 +147,7 @@ def login():
     except:
         toreturn["success"] = False
         toreturn["status"] = "OTHERFAILURES"
-        return json.dumps(toreturn)
+        return json.dumps(toreturn), 400
 
     if toreturn["success"]:
         response = make_response(redirect(url_for('redir')))
