@@ -91,6 +91,19 @@ class DBman:
         else:
             return False
 
+    def is_account_verified2(self, email=''):
+        query = f"\
+            SELECT t.verified\
+              FROM {self.tbl_user} t\
+             WHERE t.email=%(email)s"
+        self.db_read_query(query, {'email': email})
+        result = self.cursor.fetchone()
+        print(email, result[0])
+        if result and result[0] == 1:
+            return True
+        else:
+            return False
+
     def set_signupinfo(self, player_id, email, password):
         values = (player_id, email, password)
         self.db_write_query("INSERT INTO tbl_user (player_id, email, password) VALUES (%s, %s, %s)", values)

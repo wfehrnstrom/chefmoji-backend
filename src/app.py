@@ -48,13 +48,13 @@ def hello():
     return ",".join(os.listdir('/var/www/data'))
     return ",".join(os.listdir('/var/www/data'))
 
-@app.route("/")
-def home():
-    return send_from_directory('/var/www/data', 'index.html')
+# @app.route("/")
+# def home():
+#     return send_from_directory('/var/www/data', 'index.html')
 
-@app.route("/<path:path>")
-def homesupporting(path):
-    return send_from_directory('/var/www/data', path)
+# @app.route("/<path:path>")
+# def homesupporting(path):
+#     return send_from_directory('/var/www/data', path)
 
 @app.route("/register", methods = ['POST'])
 def register():
@@ -112,7 +112,7 @@ def email_confirm(token):
 
     try:
         if not db.is_email_unique(email): # if email exists in the database
-            if db.is_account_verified('', email):
+            if db.is_account_verified2(email):
                 toreturn["success"] = True
                 toreturn["status"] = "PREVCONFIRMED"
             else:
@@ -126,7 +126,8 @@ def email_confirm(token):
         else: #if email DOES NOT EXIST in the database
             toreturn["success"] = False
             toreturn["status"] = "DOESNOTEXIST"
-    except Exception:
+    except Exception as err:
+        print('Error:', err)
         toreturn["success"] = False
         toreturn["status"] = "OTHERFAILURES"
         return render_template('emailconfirm.html', status=toreturn["status"], success=toreturn["success"], totpkey=toreturn["totpkey"])
