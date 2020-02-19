@@ -27,12 +27,15 @@ def rand_id(length = 8, allow_spec_chars=True):
     return r_id
 
 def player_in_game(player_id, game_sessions, game_id):
-    print('game in sessions:')
-    print(game_id in game_sessions)
-    if game_id in game_sessions:
-        print('has player: ')
-        print(game_sessions[game_id].has_player(player_id))
     return game_id in game_sessions and game_sessions[game_id].has_player(player_id)
+
+def player_with_key(players, key):
+    if (players and key in players):
+        return players[key]
+    return None
+
+def authd(supplied_player_id, supplied_session_key, authoritative_player_ids, authoritative_session_key):
+    return (authoritative_session_key == supplied_session_key and player_with_key(authoritative_player_ids, supplied_session_key) == supplied_player_id)
 
 PROTO='HTTP://'
 DOMAIN=os.getenv('DOMAIN')

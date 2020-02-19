@@ -1,8 +1,8 @@
-from flask import Flask, flash, url_for, redirect, send_from_directory, request, render_template, make_response
+from flask import Flask, flash, url_for, redirect, send_from_directory, request, render_template, make_response, session
 from flask_socketio import SocketIO, join_room, leave_room
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
-from utils import rand_id, player_in_game, redirect_ext_url, load_env_safe
+from utils import rand_id, player_in_game, redirect_ext_url, authd
 import os
 import argparse
 from signup_checker import signup_checker
@@ -23,7 +23,7 @@ load_dotenv(find_dotenv())
 DEBUG=(os.getenv('FLASK_ENV').lower()=='development')
 
 # KEY CONSTANTS
-UIDS = 'uids'
+KEY='key'
 
 app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/data')
 
@@ -41,7 +41,9 @@ mail = Mail(app)
 # REMOVE/RESTRICT CORS_ALLOWED_ORIGINS. THIS IS DEVELOPMENT ONLY.
 socketio = SocketIO(app, cors_allowed_origins='*')
 
+# TODO: Gate access to these structures using locks
 game_sessions = dict()
+player_ids = dict()
 
 @app.route("/register", methods = ['POST'])
 def register():
@@ -139,52 +141,67 @@ def login():
     try:
         toreturn = db.check_login_info(playerid, password, totp, toreturn)
     except:
+        print(json.dumps(toreturn))
         toreturn["success"] = False
         toreturn["status"] = "OTHERFAILURES"
         return json.dumps(toreturn), 400
 
     if toreturn["success"]:
-        response = make_response(redirect(url_for('lobby.html', _external=True)))
-        response.status_code = 302
+        response = make_response(redirect('http://localhost:8080/lobby.html'), 302)
         response.headers["Set-Cookie"] = "HttpOnly;SameSite=Strict"
-        response.set_cookie('session-key', rand_id())
+        session_key = rand_id()
+        # TODO: Insert Lock
+        player_ids[session_key] = playerid
+        session[KEY]=session_key
+        response.set_cookie('session-key', session_key)
         response.set_cookie('player-id', playerid)
+        print("----------RESPONSE----------")
+        print(response)
         return response
     else:
+        print(toreturn)
         return json.dumps(toreturn), 400
 
 # TODO: IDs will be issued through the TOTP mechanism Ertheo has setup, and not through this dummy route.
-# @app.route('/issue-id')
-# def issue_id():
-#     if not UID in session:
-#         generated_uid = rand_id()
-#         session[UID] = generated_uid
-#         socketio.emit('issue-id', generated_uid)
-#         return 'ID Issued.'
-#     else:
-#         socketio.emit('issue-id', session[UID])
-#         return 'ID already issued.'
+@app.route('/issue-id')
+def issue_id():
+    if not KEY in session:
+        session_key = rand_id()
+        session[KEY] = session_key
+        session.modified = True
+        socketio.emit('issue-id', session_key)
+        return 'ID Issued.'
+    else:
+        socketio.emit('issue-id', session_key)
+        return 'ID already issued.'
 
 # TODO: This will not work in a high request environment. Not threadsafe.
 def make_new_session(owner_session_key):
     new_game_id = rand_id(allow_spec_chars=False)
-    game_sessions[new_game_id] = Game(new_game_id, [owner_id])
+    game_sessions[new_game_id] = Game(new_game_id, [owner_session_key])
     return new_game_id
 
 @app.route("/create-game", methods=["POST"])
 def create_game():
     # TODO: Add client auth checking
-    if UIDS in session:
-        session_keys = session[UIDS]
+    resp = {
+        "success": False,
+        "game_id": ""
+    }
+    if KEY in session:
         supplied_session_key = request.json['sessionkey']
         player_id = request.json['playerid']
-        if session_keys[player_id] == supplied_session_key:
+        print(player_id)
+        print(supplied_session_key)
+        print("-------AUTHORITATIVE---------")
+        print(session[KEY])
+        print(player_ids[supplied_session_key])
+        if (authd(player_id, supplied_session_key, player_ids, session[KEY])):
             game_id = make_new_session(player_id)
-            # Final message without additional room specifier.
-            socketio.emit('session-init', game_id)
-            return 'Game Creation Succeeded!'
-        return 'Invalid Session Key.'
-    return 'Session UIDS var not set.'
+            resp["game_id"] = game_id
+            resp["success"] = True
+            return resp, 200
+    return resp, 400
 
 ######################################## SOCKETIO ##################################################
 
@@ -206,7 +223,7 @@ def broadcast_game(sio, g_id, pb=False):
 def join_game_with_id(game_id, player_id, session_key):
     # TODO: join validation scheme: check whitelists or blacklists, if any.
     print("Player: " + player_id + " attempting to join the room: " + game_id)
-    if session[] == player_id and game_id in game_sessions:
+    if player_ids[session[KEY]] == player_id and game_id in game_sessions:
         print("Player: " + player_id + " joined the room: " + game_id + "!")
         join_room(game_id)
         if game_sessions[game_id].in_play():
@@ -214,7 +231,7 @@ def join_game_with_id(game_id, player_id, session_key):
             broadcast_game(socketio, game_id, pb=True)
 
 @socketio.on('play')
-def start_game(owner_id, game_id):
+def start_game(owner_id, owner_session_key, game_id):
     # MAY CAUSE ERROR. FLASK SESSION STATE MAY NOT PERSIST INTO THIS FUNCTION
     if player_in_game(owner_id, game_sessions, game_id):
         # Set game state to playing
