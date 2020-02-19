@@ -422,7 +422,8 @@ class OrderItem(Enum):
 		return recipes[self.value-1]
 
 	def needs_to_be_cooked(self):
-		reps = [True, True, True, False, False, True, True, True, False, True, False, False, True, False, True]
+		#reps = ['🌭', '🍕', '🧇', '🍣', '🍳', '🥙', '🥞', '🍜', '🍲', '🍱', '🌮', '🥪', '🍔', '🌯', '🍛']
+		reps = [True, True, True, False, True, False, True, True, True, False, False, False, True, True, True]
 		assert len(list(OrderItem)) == len(reps)
 		return reps[self.value-1]
 
