@@ -1,4 +1,4 @@
-from flask import Flask, flash, url_for, redirect, send_from_directory, request, render_template, make_response
+from flask import Flask, flash, url_for, redirect, send_from_directory, request, render_template, make_response, session
 from flask_socketio import SocketIO, join_room, leave_room
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
