@@ -373,6 +373,8 @@ class Game:
 		for p in self.players.values():
 			player = pb.players.add()
 			player.id = p.id
+			player.emoji = p.emoji
+			print("###### PLAYER EMOJI!!!! ######:", player.emoji)
 			player.position.append(p.loc[0])
 			player.position.append(p.loc[1])
 			if p.inventory.item is not None:

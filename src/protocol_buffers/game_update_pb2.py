@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='chefmoji',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x11game_update.proto\x12\x08\x63hefmoji\"\x17\n\x06MapRow\x12\r\n\x05\x63\x65lls\x18\x01 \x03(\t\"y\n\tMapUpdate\x12\x1d\n\x03map\x18\x01 \x03(\x0b\x32\x10.chefmoji.MapRow\x12\'\n\x07players\x18\x02 \x03(\x0b\x32\x16.chefmoji.PlayerUpdate\x12$\n\x05order\x18\x03 \x03(\x0b\x32\x15.chefmoji.OrderUpdate\"Z\n\x0cPlayerUpdate\x12\x10\n\x08position\x18\x01 \x03(\r\x12,\n\tinventory\x18\x02 \x01(\x0b\x32\x19.chefmoji.InventoryUpdate\x12\n\n\x02id\x18\x03 \x01(\t\"P\n\x0fInventoryUpdate\x12\x0c\n\x04item\x18\x01 \x01(\t\x12\x0e\n\x06plated\x18\x02 \x01(\x08\x12\x0e\n\x06\x63ooked\x18\x03 \x01(\x08\x12\x0f\n\x07\x63hopped\x18\x04 \x01(\x08\"q\n\x0bOrderUpdate\x12\x0b\n\x03uid\x18\x01 \x01(\r\x12\x19\n\x11registration_time\x18\x02 \x01(\r\x12\'\n\norder_type\x18\x03 \x01(\x0e\x32\x13.chefmoji.OrderType\x12\x11\n\tfulfilled\x18\x04 \x01(\x08*\xc5\x01\n\tOrderType\x12\x0b\n\x07HOT_DOG\x10\x00\x12\t\n\x05PIZZA\x10\x01\x12\x0b\n\x07WAFFLES\x10\x02\x12\t\n\x05SUSHI\x10\x03\x12\x08\n\x04\x45GGS\x10\x04\x12\x08\n\x04GYRO\x10\x05\x12\x0c\n\x08PANCAKES\x10\x06\x12\t\n\x05RAMEN\x10\x07\x12\x08\n\x04STEW\x10\x08\x12\r\n\tBENTO_BOX\x10\t\x12\x08\n\x04TACO\x10\n\x12\x0c\n\x08SANDWICH\x10\x0b\x12\r\n\tHAMBURGER\x10\x0c\x12\x0b\n\x07\x42URRITO\x10\r\x12\x0e\n\nCURRY_RICE\x10\x0e\x62\x06proto3'
+  serialized_pb=b'\n\x11game_update.proto\x12\x08\x63hefmoji\"\x17\n\x06MapRow\x12\r\n\x05\x63\x65lls\x18\x01 \x03(\t\"y\n\tMapUpdate\x12\x1d\n\x03map\x18\x01 \x03(\x0b\x32\x10.chefmoji.MapRow\x12\'\n\x07players\x18\x02 \x03(\x0b\x32\x16.chefmoji.PlayerUpdate\x12$\n\x05order\x18\x03 \x03(\x0b\x32\x15.chefmoji.OrderUpdate\"i\n\x0cPlayerUpdate\x12\x10\n\x08position\x18\x01 \x03(\r\x12,\n\tinventory\x18\x02 \x01(\x0b\x32\x19.chefmoji.InventoryUpdate\x12\n\n\x02id\x18\x03 \x01(\t\x12\r\n\x05\x65moji\x18\x04 \x01(\t\"P\n\x0fInventoryUpdate\x12\x0c\n\x04item\x18\x01 \x01(\t\x12\x0e\n\x06plated\x18\x02 \x01(\x08\x12\x0e\n\x06\x63ooked\x18\x03 \x01(\x08\x12\x0f\n\x07\x63hopped\x18\x04 \x01(\x08\"q\n\x0bOrderUpdate\x12\x0b\n\x03uid\x18\x01 \x01(\r\x12\x19\n\x11registration_time\x18\x02 \x01(\r\x12\'\n\norder_type\x18\x03 \x01(\x0e\x32\x13.chefmoji.OrderType\x12\x11\n\tfulfilled\x18\x04 \x01(\x08*\xc5\x01\n\tOrderType\x12\x0b\n\x07HOT_DOG\x10\x00\x12\t\n\x05PIZZA\x10\x01\x12\x0b\n\x07WAFFLES\x10\x02\x12\t\n\x05SUSHI\x10\x03\x12\x08\n\x04\x45GGS\x10\x04\x12\x08\n\x04GYRO\x10\x05\x12\x0c\n\x08PANCAKES\x10\x06\x12\t\n\x05RAMEN\x10\x07\x12\x08\n\x04STEW\x10\x08\x12\r\n\tBENTO_BOX\x10\t\x12\x08\n\x04TACO\x10\n\x12\x0c\n\x08SANDWICH\x10\x0b\x12\r\n\tHAMBURGER\x10\x0c\x12\x0b\n\x07\x42URRITO\x10\r\x12\x0e\n\nCURRY_RICE\x10\x0e\x62\x06proto3'
 )
 
 _ORDERTYPE = _descriptor.EnumDescriptor(
@@ -91,8 +91,8 @@ _ORDERTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=469,
-  serialized_end=666,
+  serialized_start=484,
+  serialized_end=681,
 )
 _sym_db.RegisterEnumDescriptor(_ORDERTYPE)
 
@@ -219,6 +219,13 @@ _PLAYERUPDATE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='emoji', full_name='chefmoji.PlayerUpdate.emoji', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -232,7 +239,7 @@ _PLAYERUPDATE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=179,
-  serialized_end=269,
+  serialized_end=284,
 )
 
 
@@ -283,8 +290,8 @@ _INVENTORYUPDATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=271,
-  serialized_end=351,
+  serialized_start=286,
+  serialized_end=366,
 )
 
 
@@ -335,8 +342,8 @@ _ORDERUPDATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=353,
-  serialized_end=466,
+  serialized_start=368,
+  serialized_end=481,
 )
 
 _MAPUPDATE.fields_by_name['map'].message_type = _MAPROW

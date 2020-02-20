@@ -23,6 +23,7 @@ message PlayerUpdate {
     repeated uint32 position = 1;
     InventoryUpdate inventory = 2;
     string id = 3;
+    string emoji = 4;
 }
 
 message InventoryUpdate {
