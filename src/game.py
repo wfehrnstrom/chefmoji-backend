@@ -122,10 +122,18 @@ class GameCell:
 			eprint("Overwrote existing entity.")
 		self.entity = entity
 
+class Inventory:
+	def __init__(self, item=None, plated=False, cooked=False, chopped=False):
+		self.item = item
+		self.plated = plated
+		self.cooked = cooked
+		self.chopped = chopped
+
+
 class Player(Entity):
 	def __init__(self, uid, loc, game, seq=1):
 		self.id = uid
-		self.inventory = None
+		self.inventory = Inventory()
 		self.loc = loc
 		self.type = EntityType.PLAYER
 		if seq == 1:
@@ -324,23 +332,15 @@ class Game:
 		elif key == 'e':
 			search = [-1, 1]
 			for s in search:
-				print(self.map.cell(player.loc[0], player.loc[1] + s).base, self.map.cell(player.loc[0], player.loc[1] + s).base.is_station())
-				print(self.map.cell(player.loc[0] + s, player.loc[1]).base, self.map.cell(player.loc[0] + s, player.loc[1]).base.is_station())
-				if self.map.cell(player.loc[0], player.loc[1] + s).base.is_station():
-					self.handle_station(self.map.cell(player.loc[0], player.loc[1] + s).base, player_id)
-					return True
-				elif self.map.cell(player.loc[0] + s, player.loc[1]).base.is_station():
-					self.handle_station(self.map.cell(player.loc[0] + s, player.loc[1]).base, player_id)
-					return True
-				elif self.map.cell(player.loc[0], player.loc[1] + s).entity is not None:
-					if player.inventory is None:
-						player.inventory = self.map.cell(player.loc[0], player.loc[1] + s).entity.to_str()
-						print("Inventory update:", player.inventory)
+				if self.map.cell(player.loc[0], player.loc[1] + s).entity is not None:
+					if player.inventory.item is None:
+						player.inventory.item = self.map.cell(player.loc[0], player.loc[1] + s).entity.to_str()
+						print("Inventory update:", player.inventory.item)
 						return True
 				elif self.map.cell(player.loc[0] + s, player.loc[1]).entity is not None:
-					if player.inventory is None:
-						player.inventory = self.map.cell(player.loc[0] + s, player.loc[1]).entity.to_str()
-						print("Inventory update:", player.inventory)
+					if player.inventory.item is None:
+						player.inventory.item = self.map.cell(player.loc[0] + s, player.loc[1]).entity.to_str()
+						print("Inventory update:", player.inventory.item)
 						return True
 		else:
 			return False
@@ -375,8 +375,12 @@ class Game:
 			player.id = p.id
 			player.position.append(p.loc[0])
 			player.position.append(p.loc[1])
-			if p.inventory is not None:
-				player.inventory = p.inventory
+			if p.inventory.item is not None:
+				player.inventory.item = p.inventory.item
+				player.inventory.cooked = p.inventory.cooked
+				player.inventory.plated = p.inventory.plated
+				player.inventory.chopped = p.inventory.chopped
+
 		return pb.SerializeToString()
 		# TODO: Implement order serialization
 	
