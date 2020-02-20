@@ -6,7 +6,7 @@ from order import Order, QueuedOrder, ORDER_TTL
 from threading import Timer, Thread, Event
 import random
 import time
-from protocol_buffers.game_update_pb2 import MapUpdate, MapRow
+from protocol_buffers.game_update_pb2 import MapUpdate, MapRow, PlayerUpdate
 
 UP_KEYS = ['w', 'ArrowUp']
 LEFT_KEYS = ['a', 'ArrowLeft']
@@ -308,12 +308,31 @@ class Game:
 			return not self.map.cell(new_loc[0], new_loc[1]).collidable()
 		elif key == 'e':
 			# TODO: Implement Item pickup and drop
-			return True
-		else:
-			return False
+			search = [-1, 1]
+			for s in search:
+				if self.map.cell(player.loc[0], player.loc[1] + s).entity is not None:
+					if player.inventory is None:
+						# pb = PlayerUpdate()
+						player.inventory = self.map.cell(player.loc[0], player.loc[1] + s).entity.to_str()
+						# pb.inventory = player.inventory
+						# pb.id = player_id
+						# self.sio.emit('inventory-update', pb.SerializeToString())
+						print("Inventory update:", player.inventory)
+						return True
+				elif self.map.cell(player.loc[0] + s, player.loc[1]).entity is not None:
+					if player.inventory is None:
+						# pb = PlayerUpdate()
+						player.inventory = self.map.cell(player.loc[0] + s, player.loc[1]).entity.to_str()
+						# pb.inventory = player.inventory
+						# pb.id = player_id
+						# self.sio.emit('inventory-update', pb.SerializeToString())
+						print("Inventory update:", player.inventory)
+						return True
+				else:
+					return False
 
 	def update(self, player_id, key):
-		assert self.valid_player_update(player_id, key)
+		# assert self.valid_player_update(player_id, key)
 		if not self.in_play():
 			# in this case, update is a no-op
 			return
