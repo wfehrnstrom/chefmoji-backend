@@ -128,7 +128,13 @@ class Inventory:
 		self.plated = plated
 		self.cooked = cooked
 		self.chopped = chopped
-
+	
+	def is_choppable(self):
+		print(self.item)
+		if isinstance(self.item, EntityType):			
+			return self.item.needs_to_be_chopped()
+		return False
+			
 
 class Player(Entity):
 	def __init__(self, uid, loc, game, seq=1):
@@ -151,6 +157,7 @@ class Player(Entity):
 		if key in RIGHT_KEYS:
 			return [self.loc[0]+1, self.loc[1]]
 		return self.loc
+
 
 def default_map(entities = []):
 	game_map = [
@@ -264,6 +271,15 @@ class OrderTimer():
    def cancel(self):
       self.thread.cancel()
 
+class Stove:
+	def __init__(self, slots=[]):
+		self.slots = []
+
+	def add_item(self, item):
+		if isinstance(item, EntityType) and len(self.slots) < 6:
+			self.slots.append(item)
+			return True
+		return False
 
 class Game:
 	def __init__(self, sio, session_id, player_ids=[], entities=[], orders=[], state = GameState.QUEUEING):
@@ -274,7 +290,7 @@ class Game:
 		self.__init_map(player_ids, entities)
 		self.points = 0
 		self.order_timer = OrderTimer(10, self.generateOrder)
-		
+		self.stove = Stove()
 		self.orders = []
 		# self.__init_orders(sio, orders)
 		assert self.map.valid()
@@ -316,11 +332,21 @@ class Game:
 
 
 	def handle_station(self, base, player_id):
+		print(base)
 		player = self.players[player_id]
 		if base is CellBase.TRASH:
-			player.inventory = None
-		# elif base is CellBase.STOVE:
-		# elif base is CellBase.CUTTING_BOARD:
+			player.inventory = Inventory()
+			return True
+		elif base is CellBase.STOVE:
+			if self.stove.add_item(player.inventory.item):
+				player.inventory = Inventory()
+				return True
+			return False
+		elif base is CellBase.CUTTING_BOARD:
+			if player.inventory.is_choppable():
+				player.inventory.chopped = True
+				return True
+			return False
 		# elif base is CellBase.TURNIN:
 		# elif base is CellBase.PLATE:
 
@@ -332,15 +358,19 @@ class Game:
 		elif key == 'e':
 			search = [-1, 1]
 			for s in search:
-				if self.map.cell(player.loc[0], player.loc[1] + s).entity is not None:
+				if self.map.cell(player.loc[0], player.loc[1] + s).base.is_station():
+					return self.handle_station(self.map.cell(player.loc[0], player.loc[1] + s).base, player_id)
+				elif self.map.cell(player.loc[0] + s, player.loc[1]).base.is_station():
+					return self.handle_station(self.map.cell(player.loc[0] + s, player.loc[1]).base, player_id)
+				elif self.map.cell(player.loc[0], player.loc[1] + s).entity is not None:
 					if player.inventory.item is None:
-						player.inventory.item = self.map.cell(player.loc[0], player.loc[1] + s).entity.to_str()
-						print("Inventory update:", player.inventory.item)
+						player.inventory.item = self.map.cell(player.loc[0], player.loc[1] + s).entity.type
+						print("Inventory update:", player.inventory.item.to_str())
 						return True
 				elif self.map.cell(player.loc[0] + s, player.loc[1]).entity is not None:
 					if player.inventory.item is None:
-						player.inventory.item = self.map.cell(player.loc[0] + s, player.loc[1]).entity.to_str()
-						print("Inventory update:", player.inventory.item)
+						player.inventory.item = self.map.cell(player.loc[0] + s, player.loc[1]).entity.type
+						print("Inventory update:", player.inventory.item.to_str())
 						return True
 		else:
 			return False
@@ -378,7 +408,7 @@ class Game:
 			player.position.append(p.loc[0])
 			player.position.append(p.loc[1])
 			if p.inventory.item is not None:
-				player.inventory.item = p.inventory.item
+				player.inventory.item = p.inventory.item.to_str()
 				player.inventory.cooked = p.inventory.cooked
 				player.inventory.plated = p.inventory.plated
 				player.inventory.chopped = p.inventory.chopped
