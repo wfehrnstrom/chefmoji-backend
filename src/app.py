@@ -2,7 +2,7 @@ from flask import Flask, flash, url_for, redirect, send_from_directory, request,
 from flask_socketio import SocketIO, join_room, leave_room
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
-from utils import rand_id, player_in_game, redirect_ext_url, authd
+from utils import rand_id, player_in_game, redirect_ext_url, authd, eprint
 import os
 import argparse
 from signup_checker import signup_checker
@@ -124,9 +124,18 @@ def email_confirm(token):
 @app.route("/login", methods = ['POST'])
 def login():
     client_input = request.json
-    playerid = client_input['playerid']
-    password = client_input['password']
-    totp = client_input['totp']
+    if 'playerid' in client_input:
+        playerid = client_input['playerid']
+    else:
+        playerid = ''
+    if 'password' in client_input:
+        password = client_input['password']
+    else:
+        password = ''
+    if 'totp' in client_input:
+        totp = client_input['totp']
+    else:
+        totp = ''
 
     # hash password
     password = sha3.sha3_256(password.encode('utf-8')).hexdigest()
@@ -149,14 +158,12 @@ def login():
     if toreturn["success"]:
         response = make_response(redirect('http://localhost:8080/lobby.html'), 302)
         response.headers["Set-Cookie"] = "HttpOnly;SameSite=Strict"
-        session_key = rand_id()
+        session_key = rand_id(allow_spec_chars=False)
         # TODO: Insert Lock
         player_ids[session_key] = playerid
         session[KEY]=session_key
         response.set_cookie('session-key', session_key)
         response.set_cookie('player-id', playerid)
-        print("----------RESPONSE----------")
-        print(response)
         return response
     else:
         print(toreturn)
@@ -166,7 +173,7 @@ def login():
 @app.route('/issue-id')
 def issue_id():
     if not KEY in session:
-        session_key = rand_id()
+        session_key = rand_id(allow_spec_chars=False)
         session[KEY] = session_key
         session.modified = True
         socketio.emit('issue-id', session_key)
@@ -176,9 +183,9 @@ def issue_id():
         return 'ID already issued.'
 
 # TODO: This will not work in a high request environment. Not threadsafe.
-def make_new_session(owner_session_key):
+def make_new_session(owner_player_id):
     new_game_id = rand_id(allow_spec_chars=False)
-    game_sessions[new_game_id] = Game(new_game_id, [owner_session_key])
+    game_sessions[new_game_id] = Game(new_game_id, [owner_player_id])
     return new_game_id
 
 @app.route("/create-game", methods=["POST"])
@@ -189,13 +196,8 @@ def create_game():
         "game_id": ""
     }
     if KEY in session:
-        supplied_session_key = request.json['sessionkey']
-        player_id = request.json['playerid']
-        print(player_id)
-        print(supplied_session_key)
-        print("-------AUTHORITATIVE---------")
-        print(session[KEY])
-        print(player_ids[supplied_session_key])
+        supplied_session_key = str(request.json['sessionkey'])
+        player_id = str(request.json['playerid'])
         if (authd(player_id, supplied_session_key, player_ids, session[KEY])):
             game_id = make_new_session(player_id)
             resp["game_id"] = game_id
@@ -223,26 +225,30 @@ def broadcast_game(sio, g_id, pb=False):
 def join_game_with_id(game_id, player_id, session_key):
     # TODO: join validation scheme: check whitelists or blacklists, if any.
     print("Player: " + player_id + " attempting to join the room: " + game_id)
-    if player_ids[session[KEY]] == player_id and game_id in game_sessions:
+    if player_ids[session_key] == player_id and game_id in game_sessions:
         print("Player: " + player_id + " joined the room: " + game_id + "!")
         join_room(game_id)
         if game_sessions[game_id].in_play():
-            # broadcast_game(socketio, game_id)
             broadcast_game(socketio, game_id, pb=True)
 
 @socketio.on('play')
-def start_game(owner_id, owner_session_key, game_id):
+def start_game(owner_session_key=None, game_id=None):
     # MAY CAUSE ERROR. FLASK SESSION STATE MAY NOT PERSIST INTO THIS FUNCTION
-    if player_in_game(owner_id, game_sessions, game_id):
+    if owner_session_key and owner_session_key in player_ids and game_id and player_in_game(player_ids[owner_session_key], game_sessions, game_id):
         # Set game state to playing
         game_sessions[game_id].play()
         # Broadcast game start to all connected players
         socketio.emit('tick', broadcast_game(socketio, game_id, pb=True), room=game_id)
 
 @socketio.on('keypress')
-def handle_player_keypress(msg, player_id, game_id):
+def handle_player_keypress(msg=None, session_key=None, game_id=None):
     # TODO: Automatically make player moved the current session player.
-    if player_in_game(player_id, game_sessions, game_id):
+    if session_key and session_key in player_ids:
+        player_id = player_ids[session_key]
+    else:
+        eprint('session key invalid or not sent')
+        return
+    if game_id and msg and player_in_game(player_id, game_sessions, game_id):
         game = game_sessions[game_id]
         decoded = PlayerAction()
         decoded.ParseFromString(bytes(list(msg.values())))
