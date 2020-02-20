@@ -318,7 +318,8 @@ class Game:
 	def handle_station(self, base, player_id):
 		player = self.players[player_id]
 		if base is CellBase.TRASH:
-			player.inventory = None
+			player.inventory = Inventory()
+			return True
 		# elif base is CellBase.STOVE:
 		# elif base is CellBase.CUTTING_BOARD:
 		# elif base is CellBase.TURNIN:
@@ -332,7 +333,11 @@ class Game:
 		elif key == 'e':
 			search = [-1, 1]
 			for s in search:
-				if self.map.cell(player.loc[0], player.loc[1] + s).entity is not None:
+				if self.map.cell(player.loc[0], player.loc[1] + s).base.is_station():
+					return self.handle_station(self.map.cell(player.loc[0], player.loc[1] + s).base, player_id)
+				elif self.map.cell(player.loc[0] + s, player.loc[1]).base.is_station():
+					return self.handle_station(self.map.cell(player.loc[0] + s, player.loc[1]).base, player_id)
+				elif self.map.cell(player.loc[0], player.loc[1] + s).entity is not None:
 					if player.inventory.item is None:
 						player.inventory.item = self.map.cell(player.loc[0], player.loc[1] + s).entity.to_str()
 						print("Inventory update:", player.inventory.item)
