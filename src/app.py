@@ -1,4 +1,4 @@
-from flask import Flask, session, flash, url_for, redirect
+from flask import Flask, flash, url_for, redirect, send_from_directory, request, render_template, make_response
 from flask_socketio import SocketIO, join_room, leave_room
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
@@ -25,7 +25,7 @@ DEBUG=(os.getenv('FLASK_ENV').lower()=='development')
 # KEY CONSTANTS
 UID = 'uid'
 
-app = Flask(__name__, instance_relative_config=True)
+app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/data')
 
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 app.config['MAIL_SERVER']=os.getenv('MAIL_SERVER')
@@ -43,17 +43,13 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 
 game_sessions = dict()
 
-@app.route('/test')
-def hello():
-    return 'Hello!'
-  
-@app.route("/register")
+@app.route("/register", methods = ['POST'])
 def register():
     # TODO: Get protobuf data from form
-    if DEBUG:
-        email = 'wfehrnstrom@gmail.com'
-        password = 'passwd'
-        playerid = 'wfehrnstrom'
+    client_input = request.json
+    playerid = client_input['playerid']
+    password = client_input['password']
+    email = client_input['email']
 
     # Hash the password again using sha3
     password = sha3.sha3_256(password.encode('utf-8')).hexdigest()
@@ -61,92 +57,107 @@ def register():
     # Validate the email and playerid
     checker = signup_checker(email, playerid)
 
-    if checker.message.success:
+    if checker.message["success"]:
         try:
             # Write the email and playerid and hashed password to the database
             db.set_signupinfo(playerid, email, password)
         except Exception as err:
             print("%s" % err)
-            checker.message.success = False
-            checker.message.email = checker.message.ErrorCode.otherfailures
-            checker.message.playerid = checker.message.ErrorCode.otherfailures
-            return checker.message.SerializeToString()
+            checker.message["success"] = False
+            checker.message["email"] = "OTHERFAILURES"
+            checker.message["playerid"] = "OTHERFAILURES"
+            return json.dumps(checker.message)
         try:
             # TODO: Look at above to do, make sure write success before sending mail
             token = generate_confirmation_token(email, os.getenv('SECRET_KEY'), os.getenv('SECRET_SALT'))
+            recipients = [email]
             msg = Message('Hello, I am The chefmoji👨‍🍳👩‍🍳', sender = os.getenv('MAIL_USERNAME'),\
-                    recipients = [email])
+                    recipients = recipients)
             msg.body = url_for('email_confirm', token = token, _external=True)
             mail.send(msg)
         except Exception as err:
             print("%s" % err)
-            return checker.message.SerializeToString()
-    return checker.message.SerializeToString()
+            return json.dumps(checker.message)
+    return json.dumps(checker.message)
 
 @app.route("/emailconfirm/<token>")
 def email_confirm(token):
     # return a protobuf message
-    toreturn = emailconfirm_pb2.EmailConfirmation()
+    toreturn = {
+        "success": False,
+        "status": "OTHERFAILURES", # DOESNOTEXIST, PREVCONFIRMED, JUSTCONFIRMED
+        "totpkey": ""
+    }
     try:
         email = confirm_token(token, os.getenv('SECRET_KEY'), os.getenv('SECRET_SALT'))
     except:
-        toreturn.success = False
-        toreturn.status = toreturn.ErrorCode.doesnotexist
-
-        return toreturn.SerializeToString()
+        toreturn["success"] = False
+        toreturn["status"] = "DOESNOTEXIST"
+        return render_template('emailconfirm.html', status=toreturn["status"], success=toreturn["success"], totpkey=toreturn["totpkey"])
 
     try:
-        if not db.is_email_unique(email): # if email exists in the database
-            if db.is_account_verified('', email):
-                toreturn.success = True
-                toreturn.status = toreturn.ErrorCode.prevconfirmed
+        if db.email_exists_in_db(email): # if email exists in the database
+            if db.is_account_verified2(email):
+                toreturn["success"] = True
+                toreturn["status"] = "PREVCONFIRMED"
             else:
                 # set verified flag in db and write mfa key to datbase
                 db.verify_account(email)
                 totpkey = db.set_totp_key(email)
 
-                toreturn.success = True
-                toreturn.status = toreturn.ErrorCode.justconfirmed
-                toreturn.totpkey = totpkey
+                toreturn["success"] = True
+                toreturn["status"] = "JUSTCONFIRMED"
+                toreturn["totpkey"] = totpkey
         else: #if email DOES NOT EXIST in the database
-            toreturn.success = False
-            toreturn.status = toreturn.ErrorCode.doesnotexist
-    except Exception:
-        toreturn.success = False
-        toreturn.status = toreturn.ErrorCode.otherfailures
-        return toreturn.SerializeToString()
+            toreturn["success"] = False
+            toreturn["status"] = "DOESNOTEXIST"
+    except Exception as err:
+        print('Error:', err)
+        toreturn["success"] = False
+        toreturn["status"] = "OTHERFAILURES"
+        return render_template('emailconfirm.html', status=toreturn["status"], success=toreturn["success"], totpkey=toreturn["totpkey"])
 
-    return toreturn.SerializeToString()
+    return render_template('emailconfirm.html', status=toreturn["status"], success=toreturn["success"], totpkey=toreturn["totpkey"])
     # NOTE: working with flash on the front end - get_flashed_messages() https://pythonprogramming.net/flash-flask-tutorial/
 
-@app.route("/login")
+@app.route("/login", methods = ['POST'])
 def login():
     # TODO: Get protobuf data from form
     # formdata.ParseFromString(request.form.get('protobuf'))
     # playerid = formdata.message.playerid
     # password = formdata.message.password
     # totp = formdata.message.password
-    playerid = ''
-    password = ''
-    totp = ''
+    client_input = request.json
+    playerid = client_input['playerid']
+    password = client_input['password']
+    totp = client_input['totp']
 
     # hash password
     password = sha3.sha3_256(password.encode('utf-8')).hexdigest()
 
     # return a protobuf message
-    toreturn = loginconfirm_pb2.LoginConfirmation()
+    toreturn = {
+        "success": False,
+        "status": "OTHERFAILURES" # BADINPUT, INCOOLDOWN, NOTVERIFIED, GOOD, OTHERFAILURES
+    }
 
     # call DBman to check
     try:
         toreturn = db.check_login_info(playerid, password, totp, toreturn)
     except:
-        toreturn.success = False
-        toreturn.status = toreturn.ErrorCode.otherfailures
-        return toreturn.SerializeToString()
+        toreturn["success"] = False
+        toreturn["status"] = "OTHERFAILURES"
+        return json.dumps(toreturn), 400
 
-    # if toreturn.success:
-        # TODO: redirect to home page
-    return toreturn.SerializeToString()
+    if toreturn["success"]:
+        response = make_response(redirect(url_for('redir')))
+        response.status_code = 302
+        response.headers["Set-Cookie"] = "HttpOnly;SameSite=Strict"
+        response.set_cookie('session-key', rand_id())
+        response.set_cookie('player-id', playerid)
+        return response
+    else:
+        return json.dumps(toreturn), 400
 
 # TODO: IDs will be issued through the TOTP mechanism Ertheo has setup, and not through this dummy route.
 @app.route('/issue-id')
@@ -227,7 +238,7 @@ def handle_player_keypress(msg, player_id, game_id):
 @socketio.on('test')
 def test():
     print('test comms received!')
-  
+
 if __name__ == "__main__":
     print("----------RUNNING AS MAIN---------")
     socketio.run(app)
