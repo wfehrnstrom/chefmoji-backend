@@ -21,8 +21,15 @@ message MapUpdate {
 message PlayerUpdate {
     // In format (MapX, MapY). X goes from left to right, and Y top to bottom of the map.
     repeated uint32 position = 1;
-    string inventory = 2;
+    InventoryUpdate inventory = 2;
     string id = 3;
+}
+
+message InventoryUpdate {
+    string item = 1;
+    bool plated = 2;
+    bool cooked = 3;
+    bool chopped = 4;
 }
 
 enum OrderType {
