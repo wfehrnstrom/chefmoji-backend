@@ -172,6 +172,7 @@ def login():
 # TODO: IDs will be issued through the TOTP mechanism Ertheo has setup, and not through this dummy route.
 @app.route('/issue-id')
 def issue_id():
+    session_key = ""
     if not KEY in session:
         session_key = rand_id(allow_spec_chars=False)
         session[KEY] = session_key
@@ -185,7 +186,7 @@ def issue_id():
 # TODO: This will not work in a high request environment. Not threadsafe.
 def make_new_session(owner_player_id):
     new_game_id = rand_id(allow_spec_chars=False)
-    game_sessions[new_game_id] = Game(new_game_id, [owner_player_id])
+    game_sessions[new_game_id] = Game(socketio, new_game_id, [owner_player_id])
     return new_game_id
 
 @app.route("/create-game", methods=["POST"])
@@ -221,12 +222,17 @@ def broadcast_game(sio, g_id, pb=False):
                     print(row)
             sio.emit('tick', {'map': game_sessions[g_id].map.to_str()}, room=g_id)
 
+def send_cookbook(sio, g_id):
+    cookbook = game_sessions[g_id].generateCookbook()
+    sio.emit('cookbook', {'cookbook': cookbook})
+
 @socketio.on('join-game-with-id')
 def join_game_with_id(game_id, player_id, session_key):
     # TODO: join validation scheme: check whitelists or blacklists, if any.
     print("Player: " + player_id + " attempting to join the room: " + game_id)
     if player_ids[session_key] == player_id and game_id in game_sessions:
         print("Player: " + player_id + " joined the room: " + game_id + "!")
+        send_cookbook(socketio, game_id)
         join_room(game_id)
         if game_sessions[game_id].in_play():
             broadcast_game(socketio, game_id, pb=True)
