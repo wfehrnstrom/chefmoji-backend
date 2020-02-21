@@ -305,7 +305,7 @@ class Stove:
 							print('DID NOT FIND MATCH: too many ingredients in slots')
 							self.clear(sio)
 							return False
-						continue
+						break
 				if not temp:
 					print('Found match!')
 					player.inventory = Inventory(item, False, True, False)
@@ -342,6 +342,34 @@ class PlatingStation:
 			# print('Fail!')
 			return False
 	
+	def clear(self, sio):
+		self.slots = []
+		sio.emit('plating-update', self.serialize())
+
+	def check_valid(self, player, sio):
+		# print('checking valid', self.slots)
+		for item in list(OrderItem):
+			if not item.needs_to_be_cooked():
+				temp = item.get_recipe()
+				for ingred in self.slots:
+					# print('checking', ingred.item)
+					try:
+						temp.remove(ingred.item)
+					except ValueError:
+						if not temp:
+							print('DID NOT FIND MATCH: too many ingredients in slots')
+							self.clear(sio)
+							return False
+						break
+				if not temp:
+					print('Found match!')
+					player.inventory = Inventory(item, True, player.inventory.cooked, False)
+					self.clear(sio)
+					return True
+		print('DID NOT FIND MATCH: no matching recipe')
+		self.clear(sio)		
+		return False
+
 	def serialize(self):
 		pb = StationUpdate()
 		for i in self.slots:
@@ -442,9 +470,9 @@ class Game:
 		if base == CellBase.STOVE:
 			print('checking stove assemble')
 			return self.stove.check_valid(player, self.sio)
-		# elif base == CellBase.PLATE:
-		# 	print('checking stove assemble')
-		# 	self.stove.check_valid(player)
+		elif base == CellBase.PLATE:
+			print('checking plate assemble')
+			return self.plating_station.check_valid(player, self.sio)
 
 
 	def valid_player_update(self, player_id, key):
