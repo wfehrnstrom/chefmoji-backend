@@ -1,7 +1,7 @@
 from threading import Timer
 from protocol_buffers.game_update_pb2 import OrderUpdate, OrderType
 
-ORDER_TTL = 20
+ORDER_TTL = 120
 
 class Order:
     # @param OrderType type

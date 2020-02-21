@@ -7,7 +7,7 @@ from threading import Timer, Thread, Event
 import random
 import time
 from collections import Counter
-from protocol_buffers.game_update_pb2 import MapUpdate, MapRow, PlayerUpdate, StationUpdate, InventoryUpdate
+from protocol_buffers.game_update_pb2 import MapUpdate, MapRow, PlayerUpdate, StationUpdate, InventoryUpdate, OrderType
 
 UP_KEYS = ['w', 'ArrowUp']
 LEFT_KEYS = ['a', 'ArrowLeft']
@@ -299,7 +299,12 @@ class Stove:
 				for ingred in self.slots:
 					# print('checking', ingred.item)
 					try:
-						temp.remove(ingred.item)
+						if ingred.chopped == ingred.item.needs_to_be_chopped():
+							temp.remove(ingred.item)
+						else:
+							print('INGREDIENT NEEDS TO BE CHOPPED. Slots cleared')
+							self.clear(sio)
+							return False
 					except ValueError:
 						if not temp:
 							print('DID NOT FIND MATCH: too many ingredients in slots')
@@ -395,10 +400,11 @@ class Game:
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
 		self.points = 0
-		self.order_timer = OrderTimer(10, self.generateOrder)
+		self.orders = []
+		self.generateOrder()
+		self.order_timer = OrderTimer(30, self.generateOrder)
 		self.stove = Stove()
 		self.plating_station = PlatingStation()
-		self.orders = []
 		# self.__init_orders(sio, orders)
 		assert self.map.valid()
 		assert len(self.players) == 1
@@ -469,7 +475,27 @@ class Game:
 			else:
 				# print('Could not add to plating!')
 				return False
-		# elif base is CellBase.TURNIN:
+		elif base is CellBase.TURNIN:
+			print('Handling TURNIN')
+			return self.turnin(base, player)
+
+	def turnin(self, base, player):
+		if base == CellBase.TURNIN:
+			print('checking turnin')
+			if player.inventory.plated:
+				if isinstance(player.inventory.item, OrderItem):
+					for queued_order in self.orders:
+						if not queued_order.order.fulfilled:
+							converted = OrderType.Value(queued_order.order.type.name) + 1
+							if converted == player.inventory.item.value:
+								if player.inventory.cooked == OrderItem(converted).needs_to_be_cooked():
+									print("Found MATCH for turnin")
+									player.inventory = Inventory()
+									queued_order.order.fulfilled = True
+									self.points += OrderItem(converted).get_points()
+									print("Point update:", self.points)
+									return True
+
 
 	def handle_assemble(self, base, player_id):
 		player = self.players[player_id]
