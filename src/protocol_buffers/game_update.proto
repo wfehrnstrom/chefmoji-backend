@@ -33,6 +33,10 @@ message InventoryUpdate {
     bool chopped = 4;
 }
 
+message StationUpdate {
+    repeated InventoryUpdate slots = 1;
+}
+
 enum OrderType {
 	HOT_DOG = 0;
 	PIZZA = 1;
@@ -64,4 +68,5 @@ message OrderUpdate {
     OrderType order_type = 3;
     // Server To Client: This order has been fulfilled. Tear it down.
     bool fulfilled = 4;
+    uint32 points = 5;
 }

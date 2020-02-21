@@ -6,7 +6,9 @@ from order import Order, QueuedOrder, ORDER_TTL
 from threading import Timer, Thread, Event
 import random
 import time
-from protocol_buffers.game_update_pb2 import MapUpdate, MapRow, PlayerUpdate
+import json
+from collections import Counter
+from protocol_buffers.game_update_pb2 import MapUpdate, MapRow, PlayerUpdate, StationUpdate, InventoryUpdate, OrderType
 
 UP_KEYS = ['w', 'ArrowUp']
 LEFT_KEYS = ['a', 'ArrowLeft']
@@ -112,13 +114,10 @@ class GameCell:
 		return self.base.to_str()
 	
 	def collidable(self):
-		# print(self.base.name)
-		# if self.entity:
-		# 	print(self.entity.type)
 		return self.base.collidable() or (self.entity is not None)
 
 	def place(self, entity):
-		if self.entity is not None:
+		if self.entity is not None and entity is not None:
 			eprint("Overwrote existing entity.")
 		self.entity = entity
 
@@ -176,8 +175,13 @@ def default_map(entities = []):
 		[GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL)]
 	]
 	for ent in entities:
-		game_map[ent.loc[1]][ent.loc[0]].entity = ent
+		game_map = add_entity_to_default_map(game_map, ent)
 	return game_map
+
+def add_entity_to_default_map(map, entity):
+	map[entity.loc[1]][entity.loc[0]].entity = entity
+	return map
+
 
 @unique
 class GameState(Enum):
@@ -189,6 +193,21 @@ class GameState(Enum):
 class Map:
 	def __init__(self, entities=[]):
 		self.map = default_map(entities)
+
+	def add_entity(self, entity, loc=None):
+		if loc is None:
+			loc = entity.loc
+			if loc is None:
+				eprint("Entity unable to be added because no location was specified.")
+				return
+		elif (self.entity_at(loc)):
+			eprint("Entity would overwrite existing entity. Refusing to add.")
+			return
+		add_entity_to_default_map(self.map, entity)
+
+	def entity_at(self, loc):
+		c = self.cell(loc)
+		return c and c.entity is not None
 
 	def in_bounds(self, loc):
 		assert len(loc) == 2
@@ -272,29 +291,155 @@ class OrderTimer():
       self.thread.cancel()
 
 class Stove:
-	def __init__(self, slots=[]):
+	def __init__(self, game_id, slots=[]):
 		self.slots = []
+		self.game_id = game_id
 
 	def add_item(self, item):
-		if isinstance(item, EntityType) and len(self.slots) < 6:
+		# print('Trying to add item: ', item)
+		if isinstance(item.item, EntityType) and len(self.slots) < 6:
 			self.slots.append(item)
+			# print(self.slots)
+			# print('Success!')
 			return True
+		else:
+			# print('Fail!')
+			return False
+
+	def clear(self, sio):
+		self.slots = []
+		sio.emit('stove-update', self.serialize(), room=self.game_id)
+
+	def check_valid(self, player, sio):
+		# print('checking valid', self.slots)
+		for item in list(OrderItem):
+			if item.needs_to_be_cooked():
+				temp = item.get_recipe()
+				for ingred in self.slots:
+					# print('checking', ingred.item)
+					try:
+						if ingred.chopped == ingred.item.needs_to_be_chopped():
+							temp.remove(ingred.item)
+						else:
+							print('INGREDIENT NEEDS TO BE CHOPPED. Slots cleared')
+							self.clear(sio)
+							return False
+					except ValueError:
+						if not temp:
+							print('DID NOT FIND MATCH: too many ingredients in slots')
+							self.clear(sio)
+							return False
+						break
+				if not temp:
+					print('Found match!')
+					player.inventory = Inventory(item, False, True, False)
+					self.clear(sio)
+					return True
+		print('DID NOT FIND MATCH: no matching recipe')
+		self.clear(sio)		
 		return False
+
+
+	def serialize(self):
+		pb = StationUpdate()
+		for i in self.slots:
+			slot = InventoryUpdate()
+			slot.item = i.item.to_str()
+			slot.cooked = i.cooked
+			slot.plated = i.plated
+			slot.chopped = i.chopped
+			pb.slots.append(slot)
+		return pb.SerializeToString()
+
+class PlatingStation:
+	def __init__(self, game_id, slots=[]):
+		self.slots = []
+		self.game_id = game_id
+
+	def add_item(self, item):
+		# print('Trying to add item: ', item)
+		if len(self.slots) < 6:
+			self.slots.append(item)
+			# print(self.slots)
+			# print('Success!')
+			return True
+		else:
+			# print('Fail!')
+			return False
+	
+	def clear(self, sio):
+		self.slots = []
+		sio.emit('plating-update', self.serialize(), room=self.game_id)
+
+	def check_valid(self, player, sio):
+		if len(self.slots) == 1:
+			if isinstance(self.slots[0].item, OrderItem):
+				print('Found match!')
+				player.inventory = Inventory(self.slots[0].item, True, self.slots[0].cooked, False)
+				self.clear(sio)
+				return True
+		# print('checking valid', self.slots)
+		for item in list(OrderItem):
+			if not item.needs_to_be_cooked():
+				temp = item.get_recipe()
+				for ingred in self.slots:
+					# print('checking', ingred.item)
+					try:
+						temp.remove(ingred.item)
+					except ValueError:
+						if not temp:
+							print('DID NOT FIND MATCH: too many ingredients in slots')
+							self.clear(sio)
+							return False
+						break
+				if not temp:
+					print('Found match!')
+					player.inventory = Inventory(item, True, player.inventory.cooked, False)
+					self.clear(sio)
+					return True
+		print('DID NOT FIND MATCH: no matching recipe')
+		self.clear(sio)		
+		return False
+
+	def serialize(self):
+		pb = StationUpdate()
+		for i in self.slots:
+			slot = InventoryUpdate()
+			slot.item = i.item.to_str()
+			slot.cooked = i.cooked
+			slot.plated = i.plated
+			slot.chopped = i.chopped
+			pb.slots.append(slot)
+		return pb.SerializeToString()	
 
 class Game:
 	def __init__(self, sio, session_id, player_ids=[], entities=[], orders=[], state = GameState.QUEUEING):
 		self.sio = sio
 		self.state = state
 		# same as room identifier used by socket.io
+		
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
+		self.send_cookbook()
 		self.points = 0
-		self.order_timer = OrderTimer(10, self.generateOrder)
-		self.stove = Stove()
 		self.orders = []
+		self.stove = Stove(session_id)
+		self.plating_station = PlatingStation(session_id)
 		# self.__init_orders(sio, orders)
 		assert self.map.valid()
 		assert len(self.players) == 1
+
+	def start_orders(self):
+		self.generateOrder()
+		self.order_timer = OrderTimer(60, self.generateOrder)
+		self.order_timer.start()
+
+	def send_cookbook(self):
+		print('trying to send cookbook again')
+		cookbook = self.generateCookbook()
+		print(cookbook)
+		self.sio.emit('recipes', self.serialize_into_pb(), room=self.session_id)
+		print('done to send cookbook again')
 	
 	def generateOrder(self):
 		item = random.choice(list(OrderItem))
@@ -304,14 +449,14 @@ class Game:
 
 	def __init_map(self, player_ids, entities):
 		i = 0
-		starting_locs = [[2,6], [13,6]]
+		self.starting_locs = [[2,6], [13,6]]
 		self.players = dict()
 		for p_id in player_ids:
-			self.players[p_id] = Player(p_id, starting_locs[i], self)
+			self.players[p_id] = Player(p_id, self.starting_locs[i], self)
 			i += 1
 			if i > 1:
 				break
-		self.map = Map([ player for player in self.players.values() ])
+		self.map = Map(self.players.values())
 		assert len(player_ids) <= 2
 
 	def send_order(self, sio, order):
@@ -319,7 +464,7 @@ class Game:
 		print("---name---")
 		print(order.type.name)
 		print(serialized := order.serialize())
-		sio.emit('order', serialized)
+		sio.emit('order', serialized, room=self.session_id)
 
 	# orders is a list of order types
 	def __init_orders(self, sio, order_types):
@@ -332,23 +477,72 @@ class Game:
 
 
 	def handle_station(self, base, player_id):
-		print(base)
+		# print(base)
 		player = self.players[player_id]
 		if base is CellBase.TRASH:
 			player.inventory = Inventory()
 			return True
-		elif base is CellBase.STOVE:
-			if self.stove.add_item(player.inventory.item):
-				player.inventory = Inventory()
-				return True
-			return False
 		elif base is CellBase.CUTTING_BOARD:
 			if player.inventory.is_choppable():
 				player.inventory.chopped = True
 				return True
 			return False
-		# elif base is CellBase.TURNIN:
-		# elif base is CellBase.PLATE:
+		elif base is CellBase.STOVE:
+			# print('Handling STOVE')
+			if self.stove.add_item(player.inventory):
+				# print('Added to stove!')
+				player.inventory = Inventory()
+				self.sio.emit('stove-update', self.stove.serialize(), room=self.session_id)
+				return True
+			else:
+				# print('Could not add to stove!')
+				return False
+		elif base is CellBase.PLATE:
+			# print('Handling PLATE')
+			if self.plating_station.add_item(player.inventory):
+				# print('Added to plating!')
+				player.inventory = Inventory()
+				self.sio.emit('plating-update', self.plating_station.serialize(), room=self.session_id)
+				return True
+			else:
+				# print('Could not add to plating!')
+				return False
+		elif base is CellBase.TURNIN:
+			print('Handling TURNIN')
+			return self.turnin(base, player)
+
+	def turnin(self, base, player):
+		if base == CellBase.TURNIN:
+			print('checking turnin')
+			if player.inventory.plated:
+				if isinstance(player.inventory.item, OrderItem):
+					for queued_order in self.orders:
+						if not queued_order.order.fulfilled:
+							converted = OrderType.Value(queued_order.order.type.name) + 1
+							if converted == player.inventory.item.value:
+								if player.inventory.cooked == OrderItem(converted).needs_to_be_cooked():
+									print("Found MATCH for turnin")
+									player.inventory = Inventory()
+									queued_order.order.fulfilled = True
+									self.points += OrderItem(converted).get_points()
+									print("Point update:", self.points)
+									self.sio.emit('order', queued_order.order.serialize(self.points), room=self.session_id)
+									return True
+
+	def handle_assemble(self, base, player_id):
+		player = self.players[player_id]
+		if base == CellBase.STOVE:
+			print('checking stove assemble')
+			return self.stove.check_valid(player, self.sio)
+		elif base == CellBase.PLATE:
+			print('checking plate assemble')
+			return self.plating_station.check_valid(player, self.sio)
+		
+	def add_player(self, player_id):
+		if player_id not in self.players and len(self.players) < 2:
+			old_num_players = len(self.players)
+			self.players[player_id] = Player(player_id, self.starting_locs[old_num_players], self)
+			self.map.add_entity(self.players[player_id])
 
 	def valid_player_update(self, player_id, key):
 		player = self.players[player_id]
@@ -372,6 +566,13 @@ class Game:
 						player.inventory.item = self.map.cell(player.loc[0] + s, player.loc[1]).entity.type
 						print("Inventory update:", player.inventory.item.to_str())
 						return True
+		elif key == 'q':
+			search = [-1, 1]
+			for s in search:
+				if self.map.cell(player.loc[0], player.loc[1] + s).base in [CellBase.STOVE, CellBase.PLATE]:
+					return self.handle_assemble(self.map.cell(player.loc[0], player.loc[1] + s).base, player_id)
+				elif self.map.cell(player.loc[0] + s, player.loc[1]).base in [CellBase.STOVE, CellBase.PLATE]:
+					return self.handle_assemble(self.map.cell(player.loc[0] + s, player.loc[1]).base, player_id)
 		else:
 			return False
 
@@ -386,7 +587,8 @@ class Game:
 
 	def play(self):
 		self.state = GameState.PLAYING
-		self.order_timer.start()
+		self.start_orders()
+		
 		# for order in self.orders:
 		# 	order.queue()
 
@@ -404,7 +606,7 @@ class Game:
 			player = pb.players.add()
 			player.id = p.id
 			player.emoji = p.emoji
-			print("###### PLAYER EMOJI!!!! ######:", player.emoji)
+			# print("###### PLAYER EMOJI!!!! ######:", player.emoji)
 			player.position.append(p.loc[0])
 			player.position.append(p.loc[1])
 			if p.inventory.item is not None:
@@ -460,6 +662,14 @@ class OrderItem(Enum):
 		if self.value in [10, 11, 12, 13, 14, 15]:
 			return 3
 		
+	def get_points(self):
+		if self.get_difficulty() == 1:
+			return 15
+		if self.get_difficulty() == 2:
+			return 20
+		if self.get_difficulty() == 3:
+			return 30
+
 	# amount of time before order expires in seconds
 	def expires_in(self):
 		return ORDER_TTL
