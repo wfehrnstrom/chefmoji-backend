@@ -68,4 +68,5 @@ message OrderUpdate {
     OrderType order_type = 3;
     // Server To Client: This order has been fulfilled. Tear it down.
     bool fulfilled = 4;
+    uint32 points = 5;
 }

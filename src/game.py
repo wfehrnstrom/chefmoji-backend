@@ -494,8 +494,8 @@ class Game:
 									queued_order.order.fulfilled = True
 									self.points += OrderItem(converted).get_points()
 									print("Point update:", self.points)
+									self.sio.emit('order', queued_order.order.serialize(self.points))
 									return True
-
 
 	def handle_assemble(self, base, player_id):
 		player = self.players[player_id]
@@ -505,7 +505,6 @@ class Game:
 		elif base == CellBase.PLATE:
 			print('checking plate assemble')
 			return self.plating_station.check_valid(player, self.sio)
-
 
 	def valid_player_update(self, player_id, key):
 		player = self.players[player_id]

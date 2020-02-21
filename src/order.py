@@ -19,7 +19,7 @@ class Order:
         else:
             self.__expiration_timer = None
 
-    def serialize(self):
+    def serialize(self, points=0):
         order_pb = OrderUpdate()
         order_pb.uid = self.uid
         order_pb.order_type = OrderType.Value(self.type.name) + 1
@@ -27,6 +27,7 @@ class Order:
         # set to no-op right now. TODO: If need be, set.
         order_pb.registration_time = 0
         order_pb.fulfilled = self.fulfilled
+        order_pb.points = points
         return order_pb.SerializeToString()
 
     def start_expiration_timer(self):
