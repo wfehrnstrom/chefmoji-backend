@@ -223,8 +223,11 @@ def broadcast_game(sio, g_id, pb=False):
             sio.emit('tick', {'map': game_sessions[g_id].map.to_str()}, room=g_id)
 
 def send_cookbook(sio, g_id):
-    cookbook = game_sessions[g_id].generateCookbook()
+    print('trying to send cookbook again')
+    cookbook = game_sessions[g_id][1].generateCookbook()
+    print(cookbook)
     sio.emit('cookbook', {'cookbook': cookbook})
+    print('done to send cookbook again')
 
 @socketio.on('join-game-with-id')
 def join_game_with_id(game_id, player_id, session_key):
@@ -232,8 +235,10 @@ def join_game_with_id(game_id, player_id, session_key):
     print("Player: " + player_id + " attempting to join the room: " + game_id)
     if player_ids[session_key] == player_id and game_id in game_sessions:
         print("Player: " + player_id + " joined the room: " + game_id + "!")
-        send_cookbook(socketio, game_id)
         join_room(game_id)
+        print('trying to send cookbook')
+        send_cookbook(socketio, game_id)
+        print('done to send cookbook')
         if game_sessions[game_id].in_play():
             broadcast_game(socketio, game_id, pb=True)
 
