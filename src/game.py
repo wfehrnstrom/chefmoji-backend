@@ -347,6 +347,12 @@ class PlatingStation:
 		sio.emit('plating-update', self.serialize())
 
 	def check_valid(self, player, sio):
+		if len(self.slots) == 1:
+			if isinstance(self.slots[0].item, OrderItem):
+				print('Found match!')
+				player.inventory = Inventory(self.slots[0].item, True, self.slots[0].cooked, False)
+				self.clear(sio)
+				return True
 		# print('checking valid', self.slots)
 		for item in list(OrderItem):
 			if not item.needs_to_be_cooked():
