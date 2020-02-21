@@ -398,7 +398,7 @@ class PlatingStation:
 					self.clear(sio)
 					return True
 		print('DID NOT FIND MATCH: no matching recipe')
-		self.clear(sio, self.se)		
+		self.clear(sio)		
 		return False
 
 	def serialize(self):
@@ -431,7 +431,7 @@ class Game:
 
 	def start_orders(self):
 		self.generateOrder()
-		self.order_timer = OrderTimer(30, self.generateOrder)
+		self.order_timer = OrderTimer(60, self.generateOrder)
 		self.order_timer.start()
 
 	def send_cookbook(self):
