@@ -72,7 +72,6 @@ class EntityType(Enum):
 	def to_str(self):
 		reps = ['🍞', '🍖', '🧀', '🍅', '🥬', '🧅', '🥓', '🥩', '🥛', '🥚', '🌾', '🧈', '🐄', '🐟', '🍚', '🍲', '🐖', '🍝', '🍥', '🥔', '🥕', '🧄', '🍍', '🍊', '🥭', '🍵', '🤓']
 		assert len(list(EntityType)) == len(reps)
-		print(reps[self.value-1])
 		return reps[self.value-1]
 
 class Entity:
@@ -98,13 +97,10 @@ class GameCell:
 		return self.base.to_str()
 	
 	def collidable(self):
-		print(self.base.name)
-		if self.entity:
-			print(self.entity.type)
 		return self.base.collidable() or (self.entity is not None)
 
 	def place(self, entity):
-		if self.entity is not None:
+		if self.entity is not None and entity is not None:
 			eprint("Overwrote existing entity.")
 		self.entity = entity
 
@@ -147,8 +143,13 @@ def default_map(entities = []):
 		[GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL)]
 	]
 	for ent in entities:
-		game_map[ent.loc[1]][ent.loc[0]].entity = ent
+		game_map = add_entity_to_default_map(game_map, ent)
 	return game_map
+
+def add_entity_to_default_map(map, entity):
+	map[entity.loc[1]][entity.loc[0]].entity = entity
+	return map
+
 
 @unique
 class GameState(Enum):
@@ -160,6 +161,21 @@ class GameState(Enum):
 class Map:
 	def __init__(self, entities=[]):
 		self.map = default_map(entities)
+
+	def add_entity(self, entity, loc=None):
+		if loc is None:
+			loc = entity.loc
+			if loc is None:
+				eprint("Entity unable to be added because no location was specified.")
+				return
+		elif (self.entity_at(loc)):
+			eprint("Entity would overwrite existing entity. Refusing to add.")
+			return
+		add_entity_to_default_map(self.map, entity)
+
+	def entity_at(self, loc):
+		c = self.cell(loc)
+		return c and c.entity is not None
 
 	def in_bounds(self, loc):
 		assert len(loc) == 2
@@ -239,20 +255,24 @@ class Game:
 	
 	def __init_map(self, player_ids, entities):
 		i = 0
-		starting_locs = [[2,6], [13,6]]
+		self.starting_locs = [[2,6], [13,6]]
 		self.players = dict()
 		for p_id in player_ids:
-			self.players[p_id] = Player(p_id, starting_locs[i], self)
+			self.players[p_id] = Player(p_id, self.starting_locs[i], self)
 			i += 1
-		self.map = Map([ self.players[player_ids[0]] ])
+		self.map = Map(self.players.values())
 		assert len(player_ids) <= 2
+
+	def add_player(self, player_id):
+		if player_id not in self.players and len(self.players) < 2:
+			old_num_players = len(self.players)
+			self.players[player_id] = Player(player_id, self.starting_locs[old_num_players], self)
+			self.map.add_entity(self.players[player_id])
 
 	def valid_player_update(self, player_id, key):
 		player = self.players[player_id]
 		if key in MOVE_KEYS:
 			new_loc = player.move(key)
-			print("New location: ")
-			print(new_loc)
 			return not self.map.cell(new_loc[0], new_loc[1]).collidable()
 		elif key == 'e':
 			# TODO: Implement Item pickup and drop
@@ -339,7 +359,6 @@ class OrderItem(Enum):
 	def needs_to_be_cooked(self):
 		reps = [True, True, True, False, False, True, True, True, False, True, False, False, True, False, True]
 		assert len(list(OrderItem)) == len(reps)
-		print(reps[self.value-1])
 		return reps[self.value-1]
 
 class TestGameMethods(unittest.TestCase):

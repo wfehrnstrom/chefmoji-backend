@@ -27,7 +27,16 @@ def rand_id(length = 8, allow_spec_chars=True):
     return r_id
 
 def player_in_game(player_id, game_sessions, game_id):
-    return game_id in game_sessions and game_sessions[game_id].has_player(player_id)
+    return game_id in game_sessions and game_sessions[game_id][1].has_player(player_id)
+
+def player_owns_game(player_id, game_sessions, game_id=None):
+    for owner_game_tuple in game_sessions.values():
+        if owner_game_tuple[0] == player_id:
+            if game_id == None:
+                return True
+            elif game_id in game_sessions:
+                return True
+    return False
 
 def player_with_key(players, key):
     if (players and key in players):
