@@ -229,18 +229,31 @@ def broadcast_game(sio, g_id, pb=False):
                     print(row)
             sio.emit('tick', {'map': game_sessions[g_id][1].map.to_str()}, room=g_id)
 
+def get_game_players(game_id, player_id, session_key):
+    players = [];
+    if(player_ids[session_key] == player_id and game_id in game_sessions):
+        for p in player_ids.values():
+            if player_in_game(p, game_sessions, game_id):
+                players.append(p)
+        if game_sessions[game_id][1].in_play():
+            socketio.emit('get-game-players', (True, players), room=game_id); # game is in play
+        else:
+            socketio.emit('get-game-players', (False, players), room=game_id); # game is not in play
+
 @socketio.on('join-game-with-id')
 def join_game_with_id(game_id, player_id, session_key):
     # TODO: join validation scheme: check whitelists or blacklists, if any.
     # TODO: check whether player is already in the game they are attempting to join
     print("Player: " + player_id + " attempting to join the room: " + game_id)
     if player_ids[session_key] == player_id and game_id in game_sessions:
-        print("Player: " + player_id + " joined the room: " + game_id + "!")
+        print("Player: " + player_id + " joined the room: " + game_id + " !")
         game_sessions[game_id][1].add_player(player_id)
         join_room(game_id)
         socketio.emit("join-confirm")
         if game_sessions[game_id][1].in_play():
             broadcast_game(socketio, game_id, pb=True)
+        else:
+            get_game_players(game_id, player_id, session_key)
 
 @socketio.on('play')
 def start_game(owner_session_key=None, game_id=None):
