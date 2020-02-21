@@ -33,6 +33,10 @@ message InventoryUpdate {
     bool chopped = 4;
 }
 
+message StationUpdate {
+    repeated InventoryUpdate slots = 1;
+}
+
 enum OrderType {
 	HOT_DOG = 0;
 	PIZZA = 1;
