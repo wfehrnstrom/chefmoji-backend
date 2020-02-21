@@ -305,7 +305,7 @@ class Stove:
 							print('DID NOT FIND MATCH: too many ingredients in slots')
 							self.clear(sio)
 							return False
-						continue
+						break
 				if not temp:
 					print('Found match!')
 					player.inventory = Inventory(item, False, True, False)
