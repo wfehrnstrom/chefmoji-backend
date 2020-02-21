@@ -6,6 +6,7 @@ from order import Order, QueuedOrder, ORDER_TTL
 from threading import Timer, Thread, Event
 import random
 import time
+import json
 from collections import Counter
 from protocol_buffers.game_update_pb2 import MapUpdate, MapRow, PlayerUpdate, StationUpdate, InventoryUpdate, OrderType
 
@@ -113,13 +114,10 @@ class GameCell:
 		return self.base.to_str()
 	
 	def collidable(self):
-		# print(self.base.name)
-		# if self.entity:
-		# 	print(self.entity.type)
 		return self.base.collidable() or (self.entity is not None)
 
 	def place(self, entity):
-		if self.entity is not None:
+		if self.entity is not None and entity is not None:
 			eprint("Overwrote existing entity.")
 		self.entity = entity
 
@@ -177,8 +175,13 @@ def default_map(entities = []):
 		[GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL), GameCell(CellBase.WALL)]
 	]
 	for ent in entities:
-		game_map[ent.loc[1]][ent.loc[0]].entity = ent
+		game_map = add_entity_to_default_map(game_map, ent)
 	return game_map
+
+def add_entity_to_default_map(map, entity):
+	map[entity.loc[1]][entity.loc[0]].entity = entity
+	return map
+
 
 @unique
 class GameState(Enum):
@@ -190,6 +193,21 @@ class GameState(Enum):
 class Map:
 	def __init__(self, entities=[]):
 		self.map = default_map(entities)
+
+	def add_entity(self, entity, loc=None):
+		if loc is None:
+			loc = entity.loc
+			if loc is None:
+				eprint("Entity unable to be added because no location was specified.")
+				return
+		elif (self.entity_at(loc)):
+			eprint("Entity would overwrite existing entity. Refusing to add.")
+			return
+		add_entity_to_default_map(self.map, entity)
+
+	def entity_at(self, loc):
+		c = self.cell(loc)
+		return c and c.entity is not None
 
 	def in_bounds(self, loc):
 		assert len(loc) == 2
@@ -397,17 +415,29 @@ class Game:
 		self.sio = sio
 		self.state = state
 		# same as room identifier used by socket.io
+		
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
+		self.send_cookbook()
 		self.points = 0
 		self.orders = []
-		self.generateOrder()
-		self.order_timer = OrderTimer(30, self.generateOrder)
 		self.stove = Stove()
 		self.plating_station = PlatingStation()
 		# self.__init_orders(sio, orders)
 		assert self.map.valid()
 		assert len(self.players) == 1
+
+	def start_orders(self):
+		self.generateOrder()
+		self.order_timer = OrderTimer(30, self.generateOrder)
+		self.order_timer.start()
+
+	def send_cookbook(self):
+		print('trying to send cookbook again')
+		cookbook = self.generateCookbook()
+		print(cookbook)
+		self.sio.emit('recipes', self.serialize_into_pb())
+		print('done to send cookbook again')
 	
 	def generateOrder(self):
 		item = random.choice(list(OrderItem))
@@ -417,14 +447,14 @@ class Game:
 
 	def __init_map(self, player_ids, entities):
 		i = 0
-		starting_locs = [[2,6], [13,6]]
+		self.starting_locs = [[2,6], [13,6]]
 		self.players = dict()
 		for p_id in player_ids:
-			self.players[p_id] = Player(p_id, starting_locs[i], self)
+			self.players[p_id] = Player(p_id, self.starting_locs[i], self)
 			i += 1
 			if i > 1:
 				break
-		self.map = Map([ player for player in self.players.values() ])
+		self.map = Map(self.players.values())
 		assert len(player_ids) <= 2
 
 	def send_order(self, sio, order):
@@ -505,6 +535,12 @@ class Game:
 		elif base == CellBase.PLATE:
 			print('checking plate assemble')
 			return self.plating_station.check_valid(player, self.sio)
+		
+	def add_player(self, player_id):
+		if player_id not in self.players and len(self.players) < 2:
+			old_num_players = len(self.players)
+			self.players[player_id] = Player(player_id, self.starting_locs[old_num_players], self)
+			self.map.add_entity(self.players[player_id])
 
 	def valid_player_update(self, player_id, key):
 		player = self.players[player_id]
@@ -549,7 +585,8 @@ class Game:
 
 	def play(self):
 		self.state = GameState.PLAYING
-		self.order_timer.start()
+		self.start_orders()
+		
 		# for order in self.orders:
 		# 	order.queue()
 
