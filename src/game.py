@@ -291,8 +291,9 @@ class OrderTimer():
       self.thread.cancel()
 
 class Stove:
-	def __init__(self, slots=[]):
+	def __init__(self, game_id, slots=[]):
 		self.slots = []
+		self.game_id = game_id
 
 	def add_item(self, item):
 		# print('Trying to add item: ', item)
@@ -307,7 +308,7 @@ class Stove:
 
 	def clear(self, sio):
 		self.slots = []
-		sio.emit('stove-update', self.serialize())
+		sio.emit('stove-update', self.serialize(), room=self.game_id)
 
 	def check_valid(self, player, sio):
 		# print('checking valid', self.slots)
@@ -351,8 +352,9 @@ class Stove:
 		return pb.SerializeToString()
 
 class PlatingStation:
-	def __init__(self, slots=[]):
+	def __init__(self, game_id, slots=[]):
 		self.slots = []
+		self.game_id = game_id
 
 	def add_item(self, item):
 		# print('Trying to add item: ', item)
@@ -367,7 +369,7 @@ class PlatingStation:
 	
 	def clear(self, sio):
 		self.slots = []
-		sio.emit('plating-update', self.serialize())
+		sio.emit('plating-update', self.serialize(), room=self.game_id)
 
 	def check_valid(self, player, sio):
 		if len(self.slots) == 1:
@@ -396,7 +398,7 @@ class PlatingStation:
 					self.clear(sio)
 					return True
 		print('DID NOT FIND MATCH: no matching recipe')
-		self.clear(sio)		
+		self.clear(sio, self.se)		
 		return False
 
 	def serialize(self):
@@ -421,8 +423,8 @@ class Game:
 		self.send_cookbook()
 		self.points = 0
 		self.orders = []
-		self.stove = Stove()
-		self.plating_station = PlatingStation()
+		self.stove = Stove(session_id)
+		self.plating_station = PlatingStation(session_id)
 		# self.__init_orders(sio, orders)
 		assert self.map.valid()
 		assert len(self.players) == 1
@@ -436,7 +438,7 @@ class Game:
 		print('trying to send cookbook again')
 		cookbook = self.generateCookbook()
 		print(cookbook)
-		self.sio.emit('recipes', self.serialize_into_pb())
+		self.sio.emit('recipes', self.serialize_into_pb(), room=self.session_id)
 		print('done to send cookbook again')
 	
 	def generateOrder(self):
@@ -462,7 +464,7 @@ class Game:
 		print("---name---")
 		print(order.type.name)
 		print(serialized := order.serialize())
-		sio.emit('order', serialized)
+		sio.emit('order', serialized, room=self.session_id)
 
 	# orders is a list of order types
 	def __init_orders(self, sio, order_types):
@@ -490,7 +492,7 @@ class Game:
 			if self.stove.add_item(player.inventory):
 				# print('Added to stove!')
 				player.inventory = Inventory()
-				self.sio.emit('stove-update', self.stove.serialize())
+				self.sio.emit('stove-update', self.stove.serialize(), room=self.session_id)
 				return True
 			else:
 				# print('Could not add to stove!')
@@ -500,7 +502,7 @@ class Game:
 			if self.plating_station.add_item(player.inventory):
 				# print('Added to plating!')
 				player.inventory = Inventory()
-				self.sio.emit('plating-update', self.plating_station.serialize())
+				self.sio.emit('plating-update', self.plating_station.serialize(), room=self.session_id)
 				return True
 			else:
 				# print('Could not add to plating!')
@@ -524,7 +526,7 @@ class Game:
 									queued_order.order.fulfilled = True
 									self.points += OrderItem(converted).get_points()
 									print("Point update:", self.points)
-									self.sio.emit('order', queued_order.order.serialize(self.points))
+									self.sio.emit('order', queued_order.order.serialize(self.points), room=self.session_id)
 									return True
 
 	def handle_assemble(self, base, player_id):
