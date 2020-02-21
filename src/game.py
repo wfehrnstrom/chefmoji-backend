@@ -460,6 +460,14 @@ class OrderItem(Enum):
 		if self.value in [10, 11, 12, 13, 14, 15]:
 			return 3
 		
+	def get_points(self):
+		if self.get_difficulty() == 1:
+			return 15
+		if self.get_difficulty() == 2:
+			return 20
+		if self.get_difficulty() == 3:
+			return 30
+
 	# amount of time before order expires in seconds
 	def expires_in(self):
 		return ORDER_TTL
