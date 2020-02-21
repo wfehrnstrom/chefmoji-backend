@@ -6,7 +6,8 @@ from order import Order, QueuedOrder, ORDER_TTL
 from threading import Timer, Thread, Event
 import random
 import time
-from protocol_buffers.game_update_pb2 import MapUpdate, MapRow, PlayerUpdate
+from collections import Counter
+from protocol_buffers.game_update_pb2 import MapUpdate, MapRow, PlayerUpdate, StationUpdate, InventoryUpdate
 
 UP_KEYS = ['w', 'ArrowUp']
 LEFT_KEYS = ['a', 'ArrowLeft']
@@ -276,10 +277,81 @@ class Stove:
 		self.slots = []
 
 	def add_item(self, item):
-		if isinstance(item, EntityType) and len(self.slots) < 6:
+		# print('Trying to add item: ', item)
+		if isinstance(item.item, EntityType) and len(self.slots) < 6:
 			self.slots.append(item)
+			# print(self.slots)
+			# print('Success!')
 			return True
+		else:
+			# print('Fail!')
+			return False
+
+	def clear(self, sio):
+		self.slots = []
+		sio.emit('stove-update', self.serialize())
+
+	def check_valid(self, player, sio):
+		# print('checking valid', self.slots)
+		for item in list(OrderItem):
+			if item.needs_to_be_cooked():
+				temp = item.get_recipe()
+				for ingred in self.slots:
+					# print('checking', ingred.item)
+					try:
+						temp.remove(ingred.item)
+					except ValueError:
+						if not temp:
+							print('DID NOT FIND MATCH: too many ingredients in slots')
+							self.clear(sio)
+							return False
+						continue
+				if not temp:
+					print('Found match!')
+					player.inventory = Inventory(item, False, True, False)
+					self.clear(sio)
+					return True
+		print('DID NOT FIND MATCH: no matching recipe')
+		self.clear(sio)		
 		return False
+
+
+	def serialize(self):
+		pb = StationUpdate()
+		for i in self.slots:
+			slot = InventoryUpdate()
+			slot.item = i.item.to_str()
+			slot.cooked = i.cooked
+			slot.plated = i.plated
+			slot.chopped = i.chopped
+			pb.slots.append(slot)
+		return pb.SerializeToString()
+
+class PlatingStation:
+	def __init__(self, slots=[]):
+		self.slots = []
+
+	def add_item(self, item):
+		# print('Trying to add item: ', item)
+		if len(self.slots) < 6:
+			self.slots.append(item)
+			# print(self.slots)
+			# print('Success!')
+			return True
+		else:
+			# print('Fail!')
+			return False
+	
+	def serialize(self):
+		pb = StationUpdate()
+		for i in self.slots:
+			slot = InventoryUpdate()
+			slot.item = i.item.to_str()
+			slot.cooked = i.cooked
+			slot.plated = i.plated
+			slot.chopped = i.chopped
+			pb.slots.append(slot)
+		return pb.SerializeToString()	
 
 class Game:
 	def __init__(self, sio, session_id, player_ids=[], entities=[], orders=[], state = GameState.QUEUEING):
@@ -291,6 +363,7 @@ class Game:
 		self.points = 0
 		self.order_timer = OrderTimer(10, self.generateOrder)
 		self.stove = Stove()
+		self.plating_station = PlatingStation()
 		self.orders = []
 		# self.__init_orders(sio, orders)
 		assert self.map.valid()
@@ -332,23 +405,47 @@ class Game:
 
 
 	def handle_station(self, base, player_id):
-		print(base)
+		# print(base)
 		player = self.players[player_id]
 		if base is CellBase.TRASH:
 			player.inventory = Inventory()
 			return True
-		elif base is CellBase.STOVE:
-			if self.stove.add_item(player.inventory.item):
-				player.inventory = Inventory()
-				return True
-			return False
 		elif base is CellBase.CUTTING_BOARD:
 			if player.inventory.is_choppable():
 				player.inventory.chopped = True
 				return True
 			return False
+		elif base is CellBase.STOVE:
+			# print('Handling STOVE')
+			if self.stove.add_item(player.inventory):
+				# print('Added to stove!')
+				player.inventory = Inventory()
+				self.sio.emit('stove-update', self.stove.serialize())
+				return True
+			else:
+				# print('Could not add to stove!')
+				return False
+		elif base is CellBase.PLATE:
+			# print('Handling PLATE')
+			if self.plating_station.add_item(player.inventory):
+				# print('Added to plating!')
+				player.inventory = Inventory()
+				self.sio.emit('plating-update', self.plating_station.serialize())
+				return True
+			else:
+				# print('Could not add to plating!')
+				return False
 		# elif base is CellBase.TURNIN:
-		# elif base is CellBase.PLATE:
+
+	def handle_assemble(self, base, player_id):
+		player = self.players[player_id]
+		if base == CellBase.STOVE:
+			print('checking stove assemble')
+			return self.stove.check_valid(player, self.sio)
+		# elif base == CellBase.PLATE:
+		# 	print('checking stove assemble')
+		# 	self.stove.check_valid(player)
+
 
 	def valid_player_update(self, player_id, key):
 		player = self.players[player_id]
@@ -372,6 +469,13 @@ class Game:
 						player.inventory.item = self.map.cell(player.loc[0] + s, player.loc[1]).entity.type
 						print("Inventory update:", player.inventory.item.to_str())
 						return True
+		elif key == 'q':
+			search = [-1, 1]
+			for s in search:
+				if self.map.cell(player.loc[0], player.loc[1] + s).base in [CellBase.STOVE, CellBase.PLATE]:
+					return self.handle_assemble(self.map.cell(player.loc[0], player.loc[1] + s).base, player_id)
+				elif self.map.cell(player.loc[0] + s, player.loc[1]).base in [CellBase.STOVE, CellBase.PLATE]:
+					return self.handle_assemble(self.map.cell(player.loc[0] + s, player.loc[1]).base, player_id)
 		else:
 			return False
 
@@ -404,7 +508,7 @@ class Game:
 			player = pb.players.add()
 			player.id = p.id
 			player.emoji = p.emoji
-			print("###### PLAYER EMOJI!!!! ######:", player.emoji)
+			# print("###### PLAYER EMOJI!!!! ######:", player.emoji)
 			player.position.append(p.loc[0])
 			player.position.append(p.loc[1])
 			if p.inventory.item is not None:
