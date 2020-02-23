@@ -235,10 +235,15 @@ def get_game_players(game_id, player_id, session_key):
         for p in player_ids.values():
             if player_in_game(p, game_sessions, game_id):
                 players.append(p)
+
+        print(str(player_id) + " owns game: " + str(game_sessions[game_id][0] == player_id) + " , game_sessions[game_id][0] = ", str(game_sessions[game_id][0]));
+
         if game_sessions[game_id][1].in_play():
-            socketio.emit('get-game-players', (True, players), room=game_id); # game is in play
+            socketio.emit('get-game-players', (True, game_sessions[game_id][0] == player_id, \
+                game_sessions[game_id][0], players), room=game_id); # game is in play
         else:
-            socketio.emit('get-game-players', (False, players), room=game_id); # game is not in play
+            socketio.emit('get-game-players', (False, game_sessions[game_id][0] == player_id, \
+                game_sessions[game_id][0], players), room=game_id); # game is not in play
 
 
 @socketio.on('join-game-with-id')
@@ -250,7 +255,7 @@ def join_game_with_id(game_id, player_id, session_key):
         print("Player: " + player_id + " joined the room: " + game_id + " !")
         game_sessions[game_id][1].add_player(player_id)
         join_room(game_id)
-        
+
         socketio.emit("join-confirm")
         if game_sessions[game_id][1].in_play():
             broadcast_game(socketio, game_id, pb=True)
@@ -264,6 +269,7 @@ def start_game(owner_session_key=None, game_id=None):
         # Set game state to playing
         game_sessions[game_id][1].play()
         # Broadcast game start to all connected players
+        socketio.emit('game-started', True, room=game_id)
         socketio.emit('tick', broadcast_game(socketio, game_id, pb=True), room=game_id)
 
 @socketio.on('keypress')
