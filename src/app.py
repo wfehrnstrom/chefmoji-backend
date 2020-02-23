@@ -188,12 +188,28 @@ BAD_AUTH = 2
 PLAYER_IN_GAME = 3
 OTHER_ERROR = 4
 
+@app.route("/check-auth", methods=["POST"])
+def check_auth():
+    resp = {
+        "authorized": False,
+        "error_code": OTHER_ERROR
+    }
+    if KEY in session:
+        supplied_session_key = str(request.json['sessionkey'])
+        player_id = str(request.json['playerid'])
+        if (authd(player_id, supplied_session_key, player_ids, session[KEY])):
+            resp["authorized"] = True
+            resp["error_code"] = SUCCESS
+            return resp, 200
+    resp["error_code"] = BAD_AUTH
+    return resp, 400
+
 @app.route("/create-game", methods=["POST"])
 def create_game():
     resp = {
         "success": False,
         "reason": "",
-        "error_code":  OTHER_ERROR,
+        "error_code": OTHER_ERROR,
         "game_id": ""
     }
     if KEY in session:
@@ -210,7 +226,7 @@ def create_game():
             resp["success"] = True
             return resp, 200
     resp["error_code"] = BAD_AUTH
-    resp["reason"] = "Authentication provided was invalid"
+    resp["reason"] = "Provided authentication was invalid"
     return resp, 400
 
 ######################################## SOCKETIO ##################################################
@@ -240,17 +256,20 @@ def get_game_players(game_id, player_id, session_key):
 
         if game_sessions[game_id][1].in_play():
             socketio.emit('get-game-players', (True, game_sessions[game_id][0] == player_id, \
-                game_sessions[game_id][0], players), room=game_id); # game is in play
+                game_sessions[game_id][0], players), room=game_id) # game is in play
         else:
             socketio.emit('get-game-players', (False, game_sessions[game_id][0] == player_id, \
-                game_sessions[game_id][0], players), room=game_id); # game is not in play
+                game_sessions[game_id][0], players), room=game_id) # game is not in play
 
 
 @socketio.on('join-game-with-id')
 def join_game_with_id(game_id, player_id, session_key):
     # TODO: join validation scheme: check whitelists or blacklists, if any.
     # TODO: check whether player is already in the game they are attempting to join
-    print("Player: " + player_id + " attempting to join the room: " + game_id)
+
+    game_id, player_id, session_key = str(game_id), str(player_id), str(session_key)
+    # print("Player: " + str(player_id) + " attempting to join the room: " + str(game_id))
+    # print("game_id: ", str(game_id) + " , player_id: ", str(player_id), " , session_key: ", str(session_key))
     if player_ids[session_key] == player_id and game_id in game_sessions:
         print("Player: " + player_id + " joined the room: " + game_id + " !")
         game_sessions[game_id][1].add_player(player_id)
