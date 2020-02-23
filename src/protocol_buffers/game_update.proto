@@ -21,31 +21,45 @@ message MapUpdate {
 message PlayerUpdate {
     // In format (MapX, MapY). X goes from left to right, and Y top to bottom of the map.
     repeated uint32 position = 1;
-    string inventory = 2;
+    InventoryUpdate inventory = 2;
     string id = 3;
+    string emoji = 4;
+}
+
+message InventoryUpdate {
+    string item = 1;
+    bool plated = 2;
+    bool cooked = 3;
+    bool chopped = 4;
+}
+
+message StationUpdate {
+    repeated InventoryUpdate slots = 1;
 }
 
 enum OrderType {
-    HOT_DOG = 0;
-    PIZZA = 1;
-    TACO = 2;
-    GYRO = 3;
-    SANDWICH = 4;
-    HAMBURGER = 5;
-    WAFFLES = 6;
-    PANCAKES = 7;
-    EGGS = 8;
-    BURRITO = 9;
-    SUSHI = 10;
-    RAMEN = 11;
-    BENTO_BOX = 12;
-    STEW = 13;
-    CURRY_RICE = 14;
+	HOT_DOG = 0;
+	PIZZA = 1;
+	WAFFLES = 2;
+	SUSHI = 3;
+	EGGS = 4;
+
+	GYRO = 5;
+	PANCAKES = 6;
+	RAMEN = 7;
+	STEW = 8;
+
+	BENTO_BOX = 9;
+	TACO = 10;
+	SANDWICH = 11;
+	HAMBURGER = 12;
+	BURRITO = 13;
+	CURRY_RICE = 14;
 }
 
 message OrderUpdate {
     uint32 uid = 1;
-    // in Unix Epoch Seconds
+    // in time since game start
     uint32 registration_time = 2;
     /* The OrderType is the type of food produced by cooking the recipe
        There is no need to provide a list of ingredients for each recipe 
@@ -54,4 +68,5 @@ message OrderUpdate {
     OrderType order_type = 3;
     // Server To Client: This order has been fulfilled. Tear it down.
     bool fulfilled = 4;
+    uint32 points = 5;
 }
