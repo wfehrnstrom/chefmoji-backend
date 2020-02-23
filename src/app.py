@@ -26,7 +26,7 @@ DEBUG=(os.getenv('FLASK_ENV').lower()=='development')
 # KEY CONSTANTS
 KEY='key'
 
-app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/data')
+app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/chefmoji')
 
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 app.config['MAIL_SERVER']=os.getenv('MAIL_SERVER')
@@ -230,7 +230,7 @@ def broadcast_game(sio, g_id, pb=False):
             sio.emit('tick', {'map': game_sessions[g_id][1].map.to_str()}, room=g_id)
 
 def get_game_players(game_id, player_id, session_key):
-    players = [];
+    players = []
     if(player_ids[session_key] == player_id and game_id in game_sessions):
         for p in player_ids.values():
             if player_in_game(p, game_sessions, game_id):

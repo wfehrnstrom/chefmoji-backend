@@ -16,7 +16,6 @@ class DBman:
     def __init__(self):
         if self.db_credentials_found():
             self.db = mysql.connect(
-                #host = "localhost",
                 host = os.getenv("DB_HOSTNAME"),
                 user = os.getenv("DB_USERNAME"),
                 passwd = os.getenv("DB_PASSWORD"),
