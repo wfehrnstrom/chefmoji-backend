@@ -46,6 +46,40 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 game_sessions = dict()
 player_ids = dict()
 
+def send_email(subject, body, recipients):
+    mail.send(Message(\
+        subject = subject,\
+        body = body,\
+        sender = os.getenv('MAIL_USERNAME'),\
+        recipients = recipients\
+    ))
+
+@app.route("/forget", methods = ['POST'])
+def forget():
+    client_input = request.json
+    forgotwhat = client_input['forgotwhat']
+    email = client_input['email']
+
+    toreturn = {
+        "success": False
+    }
+    try:
+        if(forgotwhat == 'playerid'):
+            playerid = db.get_player_id(email)
+            if playerid:
+                send_email('Chefmoji: Forgot player_id', f'This is your player id: {playerid}', [email])
+                toreturn["success"] = True
+        if(forgotwhat == 'password'):
+            if db.email_exists_in_db:
+                password = db.set_temp_pwd(email)
+                totpkey = db.set_totp_key(email)
+                send_email('Chefmoji: Forgot password', f'This is your new password: {password}\n and this is your new mfa_key: {totpkey}', [email])
+                toreturn["success"] = True
+    except Exception as err:
+        json.dumps(toreturn)
+
+    return json.dumps(toreturn)
+
 @app.route("/register", methods = ['POST'])
 def register():
     client_input = request.json

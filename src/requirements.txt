@@ -11,3 +11,4 @@ itsdangerous
 pysha3
 pyotp
 mysql-connector-python
+random-password-generator
