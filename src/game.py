@@ -136,15 +136,16 @@ class Inventory:
 			
 
 class Player(Entity):
-	def __init__(self, uid, loc, game, seq=1):
+	def __init__(self, uid, loc, game, seq):
 		self.id = uid
 		self.inventory = Inventory()
 		self.loc = loc
 		self.type = EntityType.PLAYER
-		if seq == 1:
-			self.emoji = '😎'
-		elif seq == 2:
-			self.emoji = '🧠'
+		self.seq = seq
+
+	def to_str(self):
+		reps = ['😎', '🧠']
+		return reps[self.seq]
 
 	def move(self, key):
 		if key in UP_KEYS:
@@ -191,8 +192,8 @@ class GameState(Enum):
 	FINISHED = 4
 
 class Map:
-	def __init__(self, entities=[]):
-		self.map = default_map(entities)
+	def __init__(self, players=[]):
+		self.map = default_map(players)
 
 	def add_entity(self, entity, loc=None):
 		if loc is None:
@@ -417,14 +418,13 @@ class Game:
 		self.sio = sio
 		self.state = state
 		# same as room identifier used by socket.io
-		
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
 		self.send_cookbook()
 		self.points = 0
 		self.orders = []
 		self.stove = Stove(session_id)
-		self.plating_station = PlatingStation(session_id)
+		self.plating_station = PlatingStation(session_id)		
 		# self.__init_orders(sio, orders)
 		assert self.map.valid()
 		assert len(self.players) == 1
@@ -452,7 +452,8 @@ class Game:
 		self.starting_locs = [[2,6], [13,6]]
 		self.players = dict()
 		for p_id in player_ids:
-			self.players[p_id] = Player(p_id, self.starting_locs[i], self)
+			print('attempting to create game with player', i+1)
+			self.players[p_id] = Player(p_id, self.starting_locs[i], self, i)
 			i += 1
 			if i > 1:
 				break
@@ -541,7 +542,7 @@ class Game:
 	def add_player(self, player_id):
 		if player_id not in self.players and len(self.players) < 2:
 			old_num_players = len(self.players)
-			self.players[player_id] = Player(player_id, self.starting_locs[old_num_players], self)
+			self.players[player_id] = Player(player_id, self.starting_locs[old_num_players], self, old_num_players)
 			self.map.add_entity(self.players[player_id])
 
 	def valid_player_update(self, player_id, key):
@@ -605,7 +606,7 @@ class Game:
 		for p in self.players.values():
 			player = pb.players.add()
 			player.id = p.id
-			player.emoji = p.emoji
+			player.emoji = p.to_str()
 			# print("###### PLAYER EMOJI!!!! ######:", player.emoji)
 			player.position.append(p.loc[0])
 			player.position.append(p.loc[1])
