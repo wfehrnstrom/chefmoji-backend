@@ -267,9 +267,9 @@ def start_game(owner_session_key=None, game_id=None):
     # MAY CAUSE ERROR. FLASK SESSION STATE MAY NOT PERSIST INTO THIS FUNCTION
     if owner_session_key and owner_session_key in player_ids and game_id and player_in_game(player_ids[owner_session_key], game_sessions, game_id):
         # Set game state to playing
-        game_sessions[game_id][1].play()
         # Broadcast game start to all connected players
         socketio.emit('game-started', True, room=game_id)
+        game_sessions[game_id][1].play()
         socketio.emit('tick', broadcast_game(socketio, game_id, pb=True), room=game_id)
 
 @socketio.on('keypress')
