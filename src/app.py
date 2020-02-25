@@ -70,7 +70,7 @@ def forget():
                 send_email('Chefmoji: Forgot player_id', f'This is your player id: {playerid}', [email])
                 toreturn["success"] = True
         if(forgotwhat == 'password'):
-            if db.email_exists_in_db:
+            if db.email_exists_in_db(email):
                 password = db.set_temp_pwd(email)
                 totpkey = db.set_totp_key(email)
                 send_email('Chefmoji: Forgot password', f'This is your new password: {password}\n and this is your new mfa_key: {totpkey}', [email])
