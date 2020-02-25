@@ -22,6 +22,12 @@ import json
 load_dotenv(find_dotenv())
 
 DEBUG=(os.getenv('FLASK_ENV').lower()=='development')
+HOSTNAME='https://chefmoji'
+PORT='80'
+if DEBUG:
+    HOSTNAME='http://localhost'
+    PORT='8080'
+ADDR=HOSTNAME+':'+PORT
 
 # KEY CONSTANTS
 KEY='key'
@@ -157,7 +163,7 @@ def login():
         return json.dumps(toreturn), 400
 
     if toreturn["success"]:
-        response = make_response(redirect('http://localhost:8080/lobby.html'), 302)
+        response = make_response(redirect(ADDR+'/lobby.html'), 302)
         response.headers["Set-Cookie"] = "HttpOnly;SameSite=Strict"
         session_key = rand_id(allow_spec_chars=False)
         # TODO: Insert Lock
@@ -270,7 +276,7 @@ def join_game_with_id(game_id, player_id, session_key):
     game_id, player_id, session_key = str(game_id), str(player_id), str(session_key)
     # print("Player: " + str(player_id) + " attempting to join the room: " + str(game_id))
     # print("game_id: ", str(game_id) + " , player_id: ", str(player_id), " , session_key: ", str(session_key))
-    if player_ids[session_key] == player_id and game_id in game_sessions:
+    if session_key in player_ids and player_ids[session_key] == player_id and game_id in game_sessions:
         print("Player: " + player_id + " joined the room: " + game_id + " !")
         game_sessions[game_id][1].add_player(player_id)
         join_room(game_id)
