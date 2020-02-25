@@ -23,6 +23,7 @@ class DBman:
             )
             self.cursor = self.db.cursor(buffered=True)
             self.tbl_user = 'tbl_user'
+            print('CONNECTED!')
         else:
             raise DBValueError("Database credentials not set or table name invalid.")
 
@@ -126,6 +127,7 @@ class DBman:
 
     def check_login_info(self, player_id, password, totp, message):
         message["success"] = False
+        print(player_id)
         if self.is_account_verified(player_id):
             # check if cooldown, execute below, else say that it is in cooldown
             if not self.in_cooldown(player_id):
