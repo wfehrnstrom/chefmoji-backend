@@ -420,7 +420,7 @@ class Game:
 		# same as room identifier used by socket.io
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
-		self.send_cookbook()
+		# self.send_cookbook()
 		self.points = 0
 		self.orders = []
 		self.stove = Stove(session_id)
