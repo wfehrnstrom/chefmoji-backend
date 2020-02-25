@@ -57,8 +57,12 @@ def send_email(subject, body, recipients):
 @app.route("/forget", methods = ['POST'])
 def forget():
     client_input = request.json
-    forgotwhat = client_input['forgotwhat']
-    email = client_input['email']
+    if 'forgotwhat' in client_input:
+        forgotwhat = client_input['forgotwhat']
+    if 'email' in client_input:
+        email = client_input['email']
+    if 'mfakey' in client_input:
+        totp = client_input['mfakey']
 
     toreturn = {
         "success": False
@@ -70,10 +74,9 @@ def forget():
                 send_email('Chefmoji: Forgot player_id', f'This is your player id: {playerid}', [email])
                 toreturn["success"] = True
         if(forgotwhat == 'password'):
-            if db.email_exists_in_db(email):
+            if db.email_exists_in_db(email) and db.check_totp(email, totp):
                 password = db.set_temp_pwd(email)
-                totpkey = db.set_totp_key(email)
-                send_email('Chefmoji: Forgot password', f'This is your new password: {password}\n and this is your new mfa_key: {totpkey}', [email])
+                send_email('Chefmoji: Forgot password', f'This is your new password: {password}', [email])
                 toreturn["success"] = True
     except Exception as err:
         json.dumps(toreturn)

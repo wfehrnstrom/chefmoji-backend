@@ -149,6 +149,27 @@ class DBman:
         self.db_write_query(query, {'hashed': hashed, 'email': email})
         return password
 
+    def get_totpkey_from_email(self, email):
+        query = f"\
+            SELECT mfa_key\
+            FROM {self.tbl_user}\
+            WHERE email=%(email)s"
+        self.db_read_query(query, {'email': email})
+        result = self.cursor.fetchone()
+        if result:
+            return result[0]
+        return ''
+
+    def check_totp(self, email, totp):
+        totpkey = self.get_totpkey_from_email(email)
+        if totpkey:
+            totp_checker = pyotp.TOTP(totpkey)
+            return totp_checker.verify(totp, valid_window=1)
+        else:
+            return False
+
+
+
     def check_login_info(self, player_id, password, totp, message):
         message["success"] = False
         if self.is_account_verified(player_id):
