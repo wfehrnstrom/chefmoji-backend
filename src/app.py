@@ -214,9 +214,7 @@ def create_game():
         "error_code": OTHER_ERROR,
         "game_id": ""
     }
-    print('helloaksdjfk')
     if KEY in session:
-        print('helloaksdjfk2')
         supplied_session_key = str(request.json['sessionkey'])
         player_id = str(request.json['playerid'])
         if (authd(player_id, supplied_session_key, player_ids, session[KEY])):
@@ -272,8 +270,6 @@ def join_game_with_id(game_id, player_id, session_key):
     # TODO: check whether player is already in the game they are attempting to join
 
     game_id, player_id, session_key = str(game_id), str(player_id), str(session_key)
-    # print("Player: " + str(player_id) + " attempting to join the room: " + str(game_id))
-    # print("game_id: ", str(game_id) + " , player_id: ", str(player_id), " , session_key: ", str(session_key))
     if player_ids[session_key] == player_id and game_id in game_sessions:
         print("Player: " + player_id + " joined the room: " + game_id + " !")
         game_sessions[game_id][1].add_player(player_id)
@@ -325,7 +321,6 @@ def handle_player_keypress(msg=None, session_key=None, game_id=None):
             player_timers[player_id].cancel()
             player_timers[player_id] = Timer(60.0, remove_inactive_player, [player_id, game_id])
             player_timers[player_id].start()
-            print('Started new Timer', player_id)
             # change game state
             game.update(player_id, decoded.key_press)
             # send tick to all connected clients

@@ -82,13 +82,11 @@ class EntityType(Enum):
 	def to_str(self):
 		reps = ['🍞', '🍖', '🧀', '🍅', '🥬', '🧅', '🥓', '🥩', '🥛', '🥚', '🌾', '🧈', '🐄', '🐟', '🍚', '🍲', '🐖', '🍝', '🍥', '🥔', '🥕', '🧄', '🍍', '🍊', '🥭', '🍵', '🤓']
 		assert len(list(EntityType)) == len(reps)
-		# print(reps[self.value-1])
 		return reps[self.value-1]
 	
 	def needs_to_be_chopped(self):
 		reps = [False, False, False, True, True, True, False, False, False, False, False, False, True, True, False, False, True, False, False, True, True, True, True, True, True, False, False]
 		assert len(list(EntityType)) == len(reps)
-		# print(reps[self.value-1])
 		return reps[self.value-1]
 
 class Entity:
@@ -129,7 +127,6 @@ class Inventory:
 		self.chopped = chopped
 	
 	def is_choppable(self):
-		print(self.item)
 		if isinstance(self.item, EntityType):			
 			return self.item.needs_to_be_chopped()
 		return False
@@ -300,14 +297,10 @@ class Stove:
 		self.game_id = game_id
 
 	def add_item(self, item):
-		# print('Trying to add item: ', item)
 		if isinstance(item.item, EntityType) and len(self.slots) < 6:
 			self.slots.append(item)
-			# print(self.slots)
-			# print('Success!')
 			return True
 		else:
-			# print('Fail!')
 			return False
 
 	def clear(self, sio):
@@ -315,12 +308,10 @@ class Stove:
 		sio.emit('stove-update', self.serialize(), room=self.game_id)
 
 	def check_valid(self, player, sio):
-		# print('checking valid', self.slots)
 		for item in list(OrderItem):
 			if item.needs_to_be_cooked():
 				temp = item.get_recipe()
 				for ingred in self.slots:
-					# print('checking', ingred.item)
 					try:
 						if ingred.chopped == ingred.item.needs_to_be_chopped():
 							temp.remove(ingred.item)
@@ -361,14 +352,10 @@ class PlatingStation:
 		self.game_id = game_id
 
 	def add_item(self, item):
-		# print('Trying to add item: ', item)
 		if len(self.slots) < 6:
 			self.slots.append(item)
-			# print(self.slots)
-			# print('Success!')
 			return True
 		else:
-			# print('Fail!')
 			return False
 	
 	def clear(self, sio):
@@ -382,14 +369,17 @@ class PlatingStation:
 				player.inventory = Inventory(self.slots[0].item, True, self.slots[0].cooked, False)
 				self.clear(sio)
 				return True
-		# print('checking valid', self.slots)
 		for item in list(OrderItem):
 			if not item.needs_to_be_cooked():
 				temp = item.get_recipe()
 				for ingred in self.slots:
-					# print('checking', ingred.item)
 					try:
-						temp.remove(ingred.item)
+						if ingred.chopped == ingred.item.needs_to_be_chopped():
+							temp.remove(ingred.item)
+						else:
+							print('INGREDIENT NEEDS TO BE CHOPPED. Slots cleared')
+							self.clear(sio)
+							return False
 					except ValueError:
 						if not temp:
 							print('DID NOT FIND MATCH: too many ingredients in slots')
@@ -428,7 +418,6 @@ class Game:
 		self.orders = []
 		self.stove = Stove(session_id)
 		self.plating_station = PlatingStation(session_id)		
-		# self.__init_orders(sio, orders)
 		assert self.map.valid()
 		assert len(self.players) == 1
 
@@ -438,16 +427,12 @@ class Game:
 		self.order_timer.start()
 
 	def send_cookbook(self):
-		print('trying to send cookbook again')
 		cookbook = self.generateCookbook()
-		print(cookbook)
 		self.sio.emit('recipes', self.serialize_into_pb(), room=self.session_id)
-		print('done to send cookbook again')
 	
 	def generateOrder(self):
 		item = random.choice(list(OrderItem))
 		base_order = Order(len(self.orders) + 1, item, on_expire=None)
-		print('in initialization of orders:', base_order.type.name)
 		self.orders.append(QueuedOrder(base_order, partial(self.send_order, self.sio, base_order), 3))
 
 	def remove_player(self, player_id):
@@ -481,18 +466,7 @@ class Game:
 		print(serialized := order.serialize())
 		sio.emit('order', serialized, room=self.session_id)
 
-	# orders is a list of order types
-	def __init_orders(self, sio, order_types):
-		self.orders = []
-		for i in range(0, len(order_types)):
-			base_order = Order(i, order_types[i], on_expire=None)
-			print('in initialization of orders: ')
-			print(base_order.type.name)
-			self.orders.append(QueuedOrder(base_order, partial(self.send_order, sio, base_order)))
-
-
 	def handle_station(self, base, player_id):
-		# print(base)
 		player = self.players[player_id]
 		if base is CellBase.TRASH:
 			player.inventory = Inventory()
@@ -503,32 +477,24 @@ class Game:
 				return True
 			return False
 		elif base is CellBase.STOVE:
-			# print('Handling STOVE')
 			if self.stove.add_item(player.inventory):
-				# print('Added to stove!')
 				player.inventory = Inventory()
 				self.sio.emit('stove-update', self.stove.serialize(), room=self.session_id)
 				return True
 			else:
-				# print('Could not add to stove!')
 				return False
 		elif base is CellBase.PLATE:
-			# print('Handling PLATE')
 			if self.plating_station.add_item(player.inventory):
-				# print('Added to plating!')
 				player.inventory = Inventory()
 				self.sio.emit('plating-update', self.plating_station.serialize(), room=self.session_id)
 				return True
 			else:
-				# print('Could not add to plating!')
 				return False
 		elif base is CellBase.TURNIN:
-			print('Handling TURNIN')
 			return self.turnin(base, player)
 
 	def turnin(self, base, player):
 		if base == CellBase.TURNIN:
-			print('checking turnin')
 			if player.inventory.plated:
 				if isinstance(player.inventory.item, OrderItem):
 					for queued_order in self.orders:
@@ -536,7 +502,6 @@ class Game:
 							converted = OrderType.Value(queued_order.order.type.name) + 1
 							if converted == player.inventory.item.value:
 								if player.inventory.cooked == OrderItem(converted).needs_to_be_cooked():
-									print("Found MATCH for turnin")
 									player.inventory = Inventory()
 									queued_order.order.fulfilled = True
 									self.points += OrderItem(converted).get_points()
@@ -547,10 +512,8 @@ class Game:
 	def handle_assemble(self, base, player_id):
 		player = self.players[player_id]
 		if base == CellBase.STOVE:
-			print('checking stove assemble')
 			return self.stove.check_valid(player, self.sio)
 		elif base == CellBase.PLATE:
-			print('checking plate assemble')
 			return self.plating_station.check_valid(player, self.sio)
 		
 	def add_player(self, player_id):
@@ -621,7 +584,6 @@ class Game:
 			player = pb.players.add()
 			player.id = p.id
 			player.emoji = p.to_str()
-			# print("###### PLAYER EMOJI!!!! ######:", player.emoji)
 			player.position.append(p.loc[0])
 			player.position.append(p.loc[1])
 			if p.inventory.item is not None:
