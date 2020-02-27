@@ -31,6 +31,10 @@ ADDR=HOSTNAME+':'+PORT
 
 # KEY CONSTANTS
 KEY='key'
+ENCODING = 'utf-8'
+STATUS = 'status'
+SUCCESS = 'success'
+TOTP_KEY = 'totpkey'
 
 app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/chefmoji')
 
@@ -46,6 +50,7 @@ db = DBman()
 mail = Mail(app)
 
 # REMOVE/RESTRICT CORS_ALLOWED_ORIGINS. THIS IS DEVELOPMENT ONLY.
+# TODO: Remove
 socketio = SocketIO(app, cors_allowed_origins='*')
 
 # TODO: Gate access to these structures using locks
@@ -60,7 +65,7 @@ def register():
     email = client_input['email']
 
     # Hash the password again using sha3
-    password = sha3.sha3_256(password.encode('utf-8')).hexdigest()
+    password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
 
     # Validate the email and playerid
     checker = signup_checker(email, playerid)
@@ -112,7 +117,6 @@ def email_confirm(token):
                 # set verified flag in db and write mfa key to datbase
                 db.verify_account(email)
                 totpkey = db.set_totp_key(email)
-
                 toreturn["success"] = True
                 toreturn["status"] = "JUSTCONFIRMED"
                 toreturn["totpkey"] = totpkey
@@ -145,7 +149,7 @@ def login():
         totp = ''
 
     # hash password
-    password = sha3.sha3_256(password.encode('utf-8')).hexdigest()
+    password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
 
     # return a protobuf message
     toreturn = {
@@ -163,6 +167,7 @@ def login():
         return json.dumps(toreturn), 400
 
     if toreturn["success"]:
+        print("Redirecting to: " + ADDR)
         response = make_response(redirect(ADDR+'/lobby.html'), 302)
         response.headers["Set-Cookie"] = "HttpOnly;SameSite=Strict"
         session_key = rand_id(allow_spec_chars=False)
@@ -212,6 +217,7 @@ def check_auth():
 
 @app.route("/create-game", methods=["POST"])
 def create_game():
+    print("---------ATTEMPING TO CREATE GAME------")
     resp = {
         "success": False,
         "reason": "",
