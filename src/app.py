@@ -299,14 +299,14 @@ def start_game(owner_session_key=None, game_id=None):
         # for p in player_ids:
         # TODO: for each player in this game, create a new Timer and add to player_timers dictionary
         for player in game_sessions[game_id][1].players.values():
-            player_timers[player.id] = Timer(10.0, remove_inactive_player, [player.id, game_id])
+            player_timers[player.id] = Timer(60.0, remove_inactive_player, [player.id, game_id])
             player_timers[player.id].start()
 
         game_sessions[game_id][1].play()
         socketio.emit('tick', broadcast_game(socketio, game_id, pb=True), room=game_id)
 
 def remove_inactive_player(player_id, game_id):
-    print('TIMEZ UP BITCHEZZ!!!', player_id)
+    print('TIMES UP for:', player_id)
     socketio.emit('timedout', {'player': player_id}, room=game_id)
     del player_timers[player_id]
     game_sessions[game_id][1].remove_player(player_id)
@@ -327,7 +327,7 @@ def handle_player_keypress(msg=None, session_key=None, game_id=None):
         decoded.ParseFromString(bytes(list(msg.values())))
         if game.valid_player_update(player_id, decoded.key_press):
             player_timers[player_id].cancel()
-            player_timers[player_id] = Timer(10.0, remove_inactive_player, [player_id, game_id])
+            player_timers[player_id] = Timer(60.0, remove_inactive_player, [player_id, game_id])
             player_timers[player_id].start()
             print('Started new Timer', player_id)
             # change game state
