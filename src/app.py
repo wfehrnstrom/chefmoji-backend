@@ -238,10 +238,6 @@ def create_game():
 @socketio.on('connect')
 def handle_connect():
     print('-----SOCKETIO CONNECTION ESTABLISHED-----')
-    @socketio.on('disconnecting')
-    def handle_disconnect(data):
-        print('-----SOCKETIO CONNECTION DE-ESTABLISHED-----')
-        print(data)
 
 def broadcast_game(sio, g_id, pb=False):
     if g_id in game_sessions:
