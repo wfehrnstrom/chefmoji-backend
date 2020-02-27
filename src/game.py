@@ -420,12 +420,10 @@ class Game:
 		# same as room identifier used by socket.io
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
-		# self.send_cookbook()
 		self.points = 0
 		self.orders = []
 		self.stove = Stove(session_id)
-		self.plating_station = PlatingStation(session_id)		
-		# self.__init_orders(sio, orders)
+		self.plating_station = PlatingStation(session_id)
 		assert self.map.valid()
 		assert len(self.players) == 1
 
