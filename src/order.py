@@ -34,6 +34,10 @@ class Order:
         if self.__expiration_timer:
             self.__expiration_timer.start()
 
+    def cancel(self):
+        if self.__expiration_timer:
+            self.__expiration_timer.cancel()
+
 class QueuedOrder(Order):
     def __init__(self, order, start_cb, starts_in=None, queue_imm=False):
         self.order = order

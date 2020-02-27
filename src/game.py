@@ -195,6 +195,9 @@ class Map:
 	def __init__(self, players=[]):
 		self.map = default_map(players)
 
+	def remove_entity(self, loc=None):
+		self.map[loc[1]][loc[0]].entity = None
+		
 	def add_entity(self, entity, loc=None):
 		if loc is None:
 			loc = entity.loc
@@ -420,7 +423,7 @@ class Game:
 		# same as room identifier used by socket.io
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
-		self.send_cookbook()
+		# self.send_cookbook()
 		self.points = 0
 		self.orders = []
 		self.stove = Stove(session_id)
@@ -446,6 +449,17 @@ class Game:
 		base_order = Order(len(self.orders) + 1, item, on_expire=None)
 		print('in initialization of orders:', base_order.type.name)
 		self.orders.append(QueuedOrder(base_order, partial(self.send_order, self.sio, base_order), 3))
+
+	def remove_player(self, player_id):
+		loc = self.players[player_id].loc
+		self.map.remove_entity(loc)
+		del self.players[player_id]
+		if len(self.players) == 0:
+			self.order_timer.cancel()
+			for queued_order in self.orders:
+				queued_order.order.cancel()
+			self.state = GameState.FINISHED
+		
 
 	def __init_map(self, player_ids, entities):
 		i = 0

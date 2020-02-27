@@ -18,6 +18,7 @@ from db.db import DBman
 from game import Game, OrderItem
 from enum import Enum
 import json
+from threading import Timer
 
 load_dotenv(find_dotenv())
 
@@ -45,6 +46,7 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 # TODO: Gate access to these structures using locks
 game_sessions = dict()
 player_ids = dict()
+player_timers = dict()
 
 @app.route("/register", methods = ['POST'])
 def register():
@@ -212,7 +214,9 @@ def create_game():
         "error_code": OTHER_ERROR,
         "game_id": ""
     }
+    print('helloaksdjfk')
     if KEY in session:
+        print('helloaksdjfk2')
         supplied_session_key = str(request.json['sessionkey'])
         player_id = str(request.json['playerid'])
         if (authd(player_id, supplied_session_key, player_ids, session[KEY])):
@@ -234,6 +238,10 @@ def create_game():
 @socketio.on('connect')
 def handle_connect():
     print('-----SOCKETIO CONNECTION ESTABLISHED-----')
+    @socketio.on('disconnecting')
+    def handle_disconnect(data):
+        print('-----SOCKETIO CONNECTION DE-ESTABLISHED-----')
+        print(data)
 
 def broadcast_game(sio, g_id, pb=False):
     if g_id in game_sessions:
@@ -288,11 +296,25 @@ def start_game(owner_session_key=None, game_id=None):
         # Set game state to playing
         # Broadcast game start to all connected players
         socketio.emit('game-started', True, room=game_id)
+        # for p in player_ids:
+        # TODO: for each player in this game, create a new Timer and add to player_timers dictionary
+        for player in game_sessions[game_id][1].players.values():
+            player_timers[player.id] = Timer(10.0, remove_inactive_player, [player.id, game_id])
+            player_timers[player.id].start()
+
         game_sessions[game_id][1].play()
         socketio.emit('tick', broadcast_game(socketio, game_id, pb=True), room=game_id)
 
+def remove_inactive_player(player_id, game_id):
+    print('TIMEZ UP BITCHEZZ!!!', player_id)
+    socketio.emit('timedout', {'player': player_id}, room=game_id)
+    del player_timers[player_id]
+    game_sessions[game_id][1].remove_player(player_id)
+    broadcast_game(socketio, game_id, pb=True)
+
 @socketio.on('keypress')
 def handle_player_keypress(msg=None, session_key=None, game_id=None):
+
     # TODO: Automatically make player moved the current session player.
     if session_key and session_key in player_ids:
         player_id = player_ids[session_key]
@@ -304,6 +326,10 @@ def handle_player_keypress(msg=None, session_key=None, game_id=None):
         decoded = PlayerAction()
         decoded.ParseFromString(bytes(list(msg.values())))
         if game.valid_player_update(player_id, decoded.key_press):
+            player_timers[player_id].cancel()
+            player_timers[player_id] = Timer(10.0, remove_inactive_player, [player_id, game_id])
+            player_timers[player_id].start()
+            print('Started new Timer', player_id)
             # change game state
             game.update(player_id, decoded.key_press)
             # send tick to all connected clients
