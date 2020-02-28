@@ -215,9 +215,7 @@ def create_game():
         "error_code": OTHER_ERROR_CODE,
         "game_id": ""
     }
-    print('helloaksdjfk')
     if KEY in session:
-        print('helloaksdjfk2')
         supplied_session_key = str(request.json['sessionkey'])
         player_id = str(request.json[CLIENT_PLAYER_ID])
         if (authd(player_id, supplied_session_key, player_ids, session[KEY])):
@@ -239,10 +237,6 @@ def create_game():
 @socketio.on('connect')
 def handle_connect():
     print('-----SOCKETIO CONNECTION ESTABLISHED-----')
-    @socketio.on('disconnecting')
-    def handle_disconnect(data):
-        print('-----SOCKETIO CONNECTION DE-ESTABLISHED-----')
-        print(data)
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -296,7 +290,7 @@ def start_game(owner_session_key=None, game_id=None):
         # Set game state to playing
         socketio.emit('game-started', True, room=game_id)
         for player in game_sessions[game_id][1].players.values():
-            player_timers[player.id] = Timer(10.0, remove_inactive_player, [player.id, game_id])
+            player_timers[player.id] = Timer(60.0, remove_inactive_player, [player.id, game_id])
             player_timers[player.id].start()
 
         game_sessions[game_id][1].play()
@@ -309,7 +303,7 @@ def remove_inactive_player(player_id, game_id):
     game_sessions[game_id][1].remove_player(player_id)
     broadcast_game(socketio, game_id, pb=True)
 
-PLAYER_TIMEOUT = 100.0
+PLAYER_TIMEOUT = 60.0
 if DEBUG:
     PLAYER_TIMEOUT = 15.0
 
