@@ -56,7 +56,15 @@ def send_email(subject, body, recipients):
 
 @app.route("/forget", methods = ['POST'])
 def forget():
+
+    toreturn = {
+        "success": False
+    }
+
     client_input = request.json
+    if not client_input:
+        return json.dumps(toreturn), 400
+
     if 'forgotwhat' in client_input:
         forgotwhat = client_input['forgotwhat']
     if 'email' in client_input:
@@ -64,9 +72,6 @@ def forget():
     if 'mfakey' in client_input:
         totp = client_input['mfakey']
 
-    toreturn = {
-        "success": False
-    }
     try:
         if(forgotwhat == 'playerid'):
             playerid = db.get_player_id(email)
@@ -85,7 +90,17 @@ def forget():
 
 @app.route("/register", methods = ['POST'])
 def register():
+    toreturn = {
+        "success": False,
+        "email": "OTHERFAILURES",
+        "playerid": "OTHERFAILURES"
+    }
+
     client_input = request.json
+    # TODO: implement stricter error checking
+    if (not client_input or 'playerid' not in client_input or 'password' not in client_input or 'email' not in client_input):
+        return json.dumps(toreturn), 400
+
     playerid = client_input['playerid']
     password = client_input['password']
     email = client_input['email']
@@ -95,7 +110,7 @@ def register():
 
     # Validate the email and playerid
     checker = signup_checker(email, playerid)
-
+    toreturn = checker.message
     if checker.message["success"]:
         try:
             # Write the email and playerid and hashed password to the database
@@ -105,7 +120,8 @@ def register():
             checker.message["success"] = False
             checker.message["email"] = "OTHERFAILURES"
             checker.message["playerid"] = "OTHERFAILURES"
-            return json.dumps(checker.message)
+            toreturn = checker.message
+            return json.dumps(toreturn), 400
         try:
             # TODO: Look at above to do, make sure write success before sending mail
             token = generate_confirmation_token(email, os.getenv('SECRET_KEY'), os.getenv('SECRET_SALT'))
@@ -116,8 +132,8 @@ def register():
             mail.send(msg)
         except Exception as err:
             print("%s" % err)
-            return json.dumps(checker.message)
-    return json.dumps(checker.message)
+            return json.dumps(toreturn), 400
+    return json.dumps(toreturn)
 
 @app.route("/emailconfirm/<token>")
 def email_confirm(token):
@@ -161,7 +177,15 @@ def email_confirm(token):
 
 @app.route("/login", methods = ['POST'])
 def login():
+
+    toreturn = {
+        "success": False,
+        "status": "OTHERFAILURES" # BADINPUT, INCOOLDOWN, NOTVERIFIED, GOOD, OTHERFAILURES
+    }
     client_input = request.json
+    if not client_input:
+        return json.dumps(toreturn), 400
+
     if 'playerid' in client_input:
         playerid = client_input['playerid']
     else:
@@ -177,12 +201,6 @@ def login():
 
     # hash password
     password = sha3.sha3_256(password.encode('utf-8')).hexdigest()
-
-    # return a protobuf message
-    toreturn = {
-        "success": False,
-        "status": "OTHERFAILURES" # BADINPUT, INCOOLDOWN, NOTVERIFIED, GOOD, OTHERFAILURES
-    }
 
     # call DBman to check
     try:
@@ -267,13 +285,13 @@ def broadcast_game(sio, g_id, pb=False):
             sio.emit('tick', {'map': game_sessions[g_id][1].map.to_str()}, room=g_id)
 
 def get_game_players(game_id, player_id, session_key):
-    players = [];
+    players = []
     if(player_ids[session_key] == player_id and game_id in game_sessions):
         for p in player_ids.values():
             if player_in_game(p, game_sessions, game_id):
                 players.append(p)
 
-        print(str(player_id) + " owns game: " + str(game_sessions[game_id][0] == player_id) + " , game_sessions[game_id][0] = ", str(game_sessions[game_id][0]));
+        print(str(player_id) + " owns game: " + str(game_sessions[game_id][0] == player_id) + " , game_sessions[game_id][0] = ", str(game_sessions[game_id][0]))
 
         if game_sessions[game_id][1].in_play():
             socketio.emit('get-game-players', (True, game_sessions[game_id][0] == player_id, \
