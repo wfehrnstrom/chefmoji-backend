@@ -476,7 +476,8 @@ class Game:
 		print("-------------ORDER SENT OUT--------------")
 		print("---name---")
 		print(order.type.name)
-		print(serialized := order.serialize())
+		serialized = order.serialize()
+		print(serialized)
 		sio.emit('order', serialized, room=self.session_id)
 
 	# orders is a list of order types

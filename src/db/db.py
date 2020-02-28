@@ -23,7 +23,6 @@ class DBman:
             )
             self.cursor = self.db.cursor(buffered=True)
             self.tbl_user = 'tbl_user'
-            print('CONNECTED!')
         else:
             raise DBValueError("Database credentials not set or table name invalid.")
 
