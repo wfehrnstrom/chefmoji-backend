@@ -97,7 +97,6 @@ class DBman:
              WHERE t.email=%(email)s"
         self.db_read_query(query, {'email': email})
         result = self.cursor.fetchone()
-        
         if result and result[0] == 1:
             return True
         else:

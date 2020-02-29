@@ -2,7 +2,7 @@ from flask import Flask, flash, url_for, redirect, send_from_directory, request,
 from flask_socketio import SocketIO, join_room, leave_room, rooms
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
-from utils import rand_id, player_in_game, redirect_ext_url, authd, eprint, player_owns_game
+from utils import rand_id, player_in_game, authd, eprint, player_owns_game
 import os
 import argparse
 from signup_checker import signup_checker
@@ -24,11 +24,12 @@ load_dotenv(find_dotenv())
 
 DEBUG=(os.getenv('FLASK_ENV').lower()=='development')
 HOSTNAME='https://chefmoji.wtf'
+ADDR=HOSTNAME
 PORT='80'
 if DEBUG:
     HOSTNAME='http://localhost'
     PORT='8080'
-ADDR=HOSTNAME+':'+PORT
+    ADDR=HOSTNAME+':'+PORT
 
 # KEY CONSTANTS
 KEY='key'
@@ -216,8 +217,8 @@ def create_game():
         "game_id": ""
     }
     if KEY in session:
-        supplied_session_key = str(request.json['sessionkey'])
-        player_id = str(request.json[CLIENT_PLAYER_ID])
+        supplied_session_key = request.json['sessionkey']
+        player_id = request.json[CLIENT_PLAYER_ID]
         if (authd(player_id, supplied_session_key, player_ids, session[KEY])):
             if player_owns_game(player_id, game_sessions):
                 resp["reason"] = "Player already in a game"
@@ -243,8 +244,6 @@ def handle_disconnect():
     print('-----SOCKETIO DISCONNECTED-----')
     print("ROOMS: ")
     print(rooms())
-
-
 
 def broadcast_game(sio, g_id, pb=False):
     if g_id in game_sessions:
@@ -278,11 +277,15 @@ def join_game_with_id(game_id, player_id, session_key):
         if not game_sessions[game_id][1].has_player(player_id):
             game_sessions[game_id][1].add_player(player_id)
         join_room(game_id)
-        socketio.emit("join-confirm")
+        socketio.emit("join-confirm", game_id)
         if game_sessions[game_id][1].in_play():
             broadcast_game(socketio, game_id, pb=True)
         else:
             get_game_players(game_id, player_id, session_key)
+
+PLAYER_TIMEOUT = 60.0
+if DEBUG:
+    PLAYER_TIMEOUT = 15.0
 
 @socketio.on('play')
 def start_game(owner_session_key=None, game_id=None):
@@ -290,7 +293,7 @@ def start_game(owner_session_key=None, game_id=None):
         # Set game state to playing
         socketio.emit('game-started', True, room=game_id)
         for player in game_sessions[game_id][1].players.values():
-            player_timers[player.id] = Timer(60.0, remove_inactive_player, [player.id, game_id])
+            player_timers[player.id] = Timer(PLAYER_TIMEOUT, remove_inactive_player, [player.id, game_id])
             player_timers[player.id].start()
 
         game_sessions[game_id][1].play()
@@ -303,16 +306,12 @@ def remove_inactive_player(player_id, game_id):
     game_sessions[game_id][1].remove_player(player_id)
     broadcast_game(socketio, game_id, pb=True)
 
-PLAYER_TIMEOUT = 60.0
-if DEBUG:
-    PLAYER_TIMEOUT = 15.0
-
 @socketio.on('keypress')
 def handle_player_keypress(msg=None, session_key=None, game_id=None):
     if session_key and session_key in player_ids:
         player_id = player_ids[session_key]
     else:
-        eprint('session key invalid or not sent')
+        eprint('Error: session key invalid or not sent')
         return
     if game_id and msg and player_in_game(player_id, game_sessions, game_id):
         game = game_sessions[game_id][1]
