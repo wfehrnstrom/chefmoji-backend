@@ -362,6 +362,7 @@ class PlatingStation:
 		self.slots = []
 		sio.emit('plating-update', self.serialize(), room=self.game_id)
 
+	#TODO: add 'needs_to_be_chopped() for OrderItem so this doesn't break
 	def check_valid(self, player, sio):
 		if len(self.slots) == 1:
 			if isinstance(self.slots[0].item, OrderItem):
@@ -373,6 +374,9 @@ class PlatingStation:
 			if not item.needs_to_be_cooked():
 				temp = item.get_recipe()
 				for ingred in self.slots:
+					if isinstance(ingred, OrderItem):
+						print('ORDERITEM FOUND WITH INVALID INGREDIENTS. Slots cleared')
+						return False
 					try:
 						if ingred.chopped == ingred.item.needs_to_be_chopped():
 							temp.remove(ingred.item)

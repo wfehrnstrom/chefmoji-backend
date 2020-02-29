@@ -15,7 +15,7 @@ import os
 from protocol_buffers import emailconfirm_pb2, loginconfirm_pb2
 from protocol_buffers.player_action_pb2 import PlayerAction
 from db.db import DBman
-from game import Game, OrderItem
+from game import Game, OrderItem, GameState
 from enum import Enum
 import json
 from threading import Timer
@@ -266,7 +266,7 @@ def get_game_players(game_id, player_id, session_key):
             socketio.emit('get-game-players', (False, game_sessions[game_id][0] == player_id, \
                 game_sessions[game_id][0], players), room=game_id) # game is not in play
 
-
+#TODO: add socket emit "join-failed" if game is already in play
 @socketio.on('join-game-with-id')
 def join_game_with_id(game_id, player_id, session_key):
     # TODO: join validation scheme: check whitelists or blacklists, if any.
@@ -304,6 +304,8 @@ def remove_inactive_player(player_id, game_id):
     socketio.emit('timedout', {'player': player_id}, room=game_id)
     del player_timers[player_id]
     game_sessions[game_id][1].remove_player(player_id)
+    if game_sessions[game_id][1].state == GameState.FINISHED:
+        del game_sessions[game_id]
     broadcast_game(socketio, game_id, pb=True)
 
 @socketio.on('keypress')
