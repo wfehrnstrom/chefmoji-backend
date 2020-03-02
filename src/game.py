@@ -193,7 +193,8 @@ class Map:
 		self.map = default_map(players)
 
 	def remove_entity(self, loc=None):
-		self.map[loc[1]][loc[0]].entity = None
+		if self.in_bounds(loc):	
+			self.map[loc[1]][loc[0]].entity = None
 		
 	def add_entity(self, entity, loc=None):
 		if loc is None:
@@ -211,8 +212,7 @@ class Map:
 		return c and c.entity is not None
 
 	def in_bounds(self, loc):
-		assert len(loc) == 2
-		if len(self.map) == 0:
+		if not loc or len(loc) != 2 or not self.map or len(self.map) == 0: 
 			return False
 		return (loc[0] >= 0 and loc[0] < len(self.map[0])) and (loc[1] >= 0 and loc[1] < len(self.map))
 	
@@ -417,7 +417,6 @@ class Game:
 		# same as room identifier used by socket.io
 		self.session_id = session_id
 		self.__init_map(player_ids, entities)
-		# self.send_cookbook()
 		self.points = 0
 		self.orders = []
 		self.stove = Stove(session_id)
@@ -440,14 +439,16 @@ class Game:
 		self.orders.append(QueuedOrder(base_order, partial(self.send_order, self.sio, base_order), 3))
 
 	def remove_player(self, player_id):
-		loc = self.players[player_id].loc
-		self.map.remove_entity(loc)
-		del self.players[player_id]
-		if len(self.players) == 0:
-			self.order_timer.cancel()
-			for queued_order in self.orders:
-				queued_order.order.cancel()
-			self.state = GameState.FINISHED
+		if self.players[player_id]:
+			loc = self.players[player_id].loc
+			self.map.remove_entity(loc)
+			del self.players[player_id]
+			if len(self.players) == 0:
+				self.order_timer.cancel()
+				for queued_order in self.orders:
+					queued_order.order.cancel()
+				self.state = GameState.FINISHED
+		
 
 	def __init_map(self, player_ids, entities):
 		i = 0
@@ -466,7 +467,8 @@ class Game:
 		print("-------------ORDER SENT OUT--------------")
 		print("---name---")
 		print(order.type.name)
-		print(serialized := order.serialize())
+		serialized = order.serialize()
+		print(serialized)
 		sio.emit('order', serialized, room=self.session_id)
 
 	def handle_station(self, base, player_id):
