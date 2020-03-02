@@ -261,10 +261,10 @@ def get_game_players(game_id, player_id, session_key):
 
         if game_sessions[game_id][1].in_play():
             socketio.emit('get-game-players', (True, game_sessions[game_id][0] == player_id, \
-                game_sessions[game_id][0], players), room=game_id) # game is in play
+                game_sessions[game_id][0], players), room=game_id); # game is in play
         else:
             socketio.emit('get-game-players', (False, game_sessions[game_id][0] == player_id, \
-                game_sessions[game_id][0], players), room=game_id) # game is not in play
+                game_sessions[game_id][0], players), room=game_id); # game is not in play
 
 #TODO: add socket emit "join-failed" if game is already in play
 @socketio.on('join-game-with-id')
