@@ -27,6 +27,12 @@ DEBUG=(os.getenv('FLASK_ENV').lower()=='development')
 # KEY CONSTANTS
 KEY='key'
 
+# TODO
+# Don't let player log in again if they are already logged in somewhere else
+# If a client disconnects, remove them from the games they were in immediately
+# Delete inactive games immediately
+# Check if game join code is valid before redirecting player to lobby
+
 app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/data')
 
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
@@ -47,6 +53,7 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 game_sessions = dict()
 player_ids = dict()
 player_timers = dict()
+socket_to_player = dict()
 
 @app.route("/register", methods = ['POST'])
 def register():
@@ -236,6 +243,26 @@ def create_game():
 @socketio.on('connect')
 def handle_connect():
     print('-----SOCKETIO CONNECTION ESTABLISHED-----')
+
+@socketio.on('player-id')
+def store_player_id(player_id):
+    socket_to_player[request.sid] = player_id
+    print('Socket ID', request.sid, 'contains', player_id)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('-----SOCKETIO CONNECTION DISCONNECTED-----')
+    player_id = socket_to_player[request.sid]
+    print('Client disconnected', player_id)
+    for game_id in game_sessions.keys():
+        if player_in_game(player_id, game_sessions, game_id):
+            game_sessions[game_id][1].remove_player(player_id)
+            break
+    if game_sessions[game_id][1].state == GameState.FINISHED:
+        del game_sessions[game_id]
+    broadcast_game(socketio, game_id, pb=True)
+
+
 
 def broadcast_game(sio, g_id, pb=False):
     if g_id in game_sessions:
