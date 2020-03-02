@@ -368,15 +368,15 @@ if DEBUG:
 @socketio.on('play')
 def start_game(owner_session_key=None, game_id=None):
     if owner_session_key and owner_session_key in player_ids and game_id and player_in_game(player_ids[owner_session_key], game_sessions, game_id):
-        # Set game state to playing
-        socketio.emit('game-started', True, room=game_id)
-        for player in game_sessions[game_id][1].players.values():
-            player_timers[player.id] = Timer(PLAYER_TIMEOUT, remove_inactive_player, [player.id, game_id])
-            player_timers[player.id].start()
-
-        game_sessions[game_id][1].play()
-        # Broadcast game start to all connected players
-        broadcast_game(socketio, game_id, pb=True)
+        if game_sessions[game_id][1].state == GameState.QUEUEING:
+            # Set game state to playing
+            socketio.emit('game-started', True, room=game_id)
+            for player in game_sessions[game_id][1].players.values():
+                player_timers[player.id] = Timer(PLAYER_TIMEOUT, remove_inactive_player, [player.id, game_id])
+                player_timers[player.id].start()
+            game_sessions[game_id][1].play()
+            # Broadcast game start to all connected players
+            broadcast_game(socketio, game_id, pb=True)
 
 def remove_inactive_player(player_id, game_id):
     socketio.emit('timedout', {'player': player_id}, room=game_id)
