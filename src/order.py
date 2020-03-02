@@ -23,7 +23,6 @@ class Order:
         order_pb = OrderUpdate()
         order_pb.uid = self.uid
         order_pb.order_type = OrderType.Value(self.type.name) + 1
-        print(OrderType.Value(self.type.name) + 1)
         # set to no-op right now. TODO: If need be, set.
         order_pb.registration_time = 0
         order_pb.fulfilled = self.fulfilled
@@ -34,18 +33,14 @@ class Order:
         if self.__expiration_timer:
             self.__expiration_timer.start()
 
+    def cancel(self):
+        if self.__expiration_timer:
+            self.__expiration_timer.cancel()
+
 class QueuedOrder(Order):
     def __init__(self, order, start_cb, starts_in=None, queue_imm=False):
         self.order = order
         start_cb()
-        # self.start_cb = start_cb
-        # wait 3 seconds and then begin to send orders across. Orders are staggered in order of their UID.
-        # if not starts_in:
-        #     starts_in = (order.type.expires_in()*order.uid)+order.uid+3
-        # print(starts_in)
-        # self.__start_timer = Timer(starts_in, self.on_start)
-        # if queue_imm:
-        #     self.queue()
 
     def on_start(self):
         self.order.start_expiration_timer()

@@ -46,16 +46,6 @@ def player_with_key(players, key):
 def authd(supplied_player_id, supplied_session_key, authoritative_player_ids, authoritative_session_key):
     return (authoritative_session_key == supplied_session_key and player_with_key(authoritative_player_ids, supplied_session_key) == supplied_player_id)
 
-PROTO='HTTP://'
-DOMAIN=os.getenv('DOMAIN')
-
-# Param: uri: should be in the form '/uri_path' NOT in the form 'uri_path
-# Param: proto: should be a valid protocol identifier i.e. http:// or ftp://
-def redirect_ext_url(uri, proto=PROTO):
-    if DOMAIN is None:
-        raise ValueError
-    return redirect(PROTO+DOMAIN+uri)
-
 def load_env_safe(path):
     if os.path.isfile(path):
         load_dotenv(dotenv_path=path)
