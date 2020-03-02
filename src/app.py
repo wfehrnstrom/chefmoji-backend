@@ -61,9 +61,61 @@ game_sessions = dict()
 player_ids = dict()
 player_timers = dict()
 
+def send_email(subject, body, recipients):
+    mail.send(Message(\
+        subject = subject,\
+        body = body,\
+        sender = os.getenv('MAIL_USERNAME'),\
+        recipients = recipients\
+    ))
+
+@app.route("/forget", methods = ['POST'])
+def forget():
+
+    toreturn = {
+        "success": False
+    }
+
+    client_input = request.json
+    if not client_input:
+        return json.dumps(toreturn), 400
+
+    if 'forgotwhat' in client_input:
+        forgotwhat = client_input['forgotwhat']
+    if 'email' in client_input:
+        email = client_input['email']
+    if 'mfakey' in client_input:
+        totp = client_input['mfakey']
+
+    try:
+        if(forgotwhat == 'playerid'):
+            playerid = db.get_player_id(email)
+            if playerid:
+                send_email('Chefmoji: Forgot player_id', f'This is your player id: {playerid}', [email])
+                toreturn["success"] = True
+        if(forgotwhat == 'password'):
+            if db.email_exists_in_db(email) and db.check_totp(email, totp):
+                password = db.set_temp_pwd(email)
+                send_email('Chefmoji: Forgot password', f'This is your new password: {password}', [email])
+                toreturn["success"] = True
+    except Exception as err:
+        json.dumps(toreturn)
+
+    return json.dumps(toreturn)
+
 @app.route("/register", methods = ['POST'])
 def register():
+    toreturn = {
+        "success": False,
+        "email": "OTHERFAILURES",
+        "playerid": "OTHERFAILURES"
+    }
+
     client_input = request.json
+    # TODO: implement stricter error checking
+    if (not client_input or CLIENT_PLAYER_ID not in client_input or CLIENT_PASSWORD not in client_input or CLIENT_EMAIL not in client_input):
+        return json.dumps(toreturn), 400
+
     playerid = client_input[CLIENT_PLAYER_ID]
     password = client_input[CLIENT_PASSWORD]
     email = client_input[CLIENT_EMAIL]
@@ -73,7 +125,7 @@ def register():
 
     # Validate the email and playerid
     checker = signup_checker(email, playerid)
-
+    toreturn = checker.message
     if checker.message[SUCCESS]:
         try:
             # Write the email and playerid and hashed password to the database
@@ -83,7 +135,8 @@ def register():
             checker.message[SUCCESS] = False
             checker.message[CLIENT_EMAIL] = "OTHERFAILURES"
             checker.message[CLIENT_PLAYER_ID] = "OTHERFAILURES"
-            return json.dumps(checker.message)
+            toreturn = checker.message
+            return json.dumps(toreturn), 400
         try:
             token = generate_confirmation_token(email, os.getenv('SECRET_KEY'), os.getenv('SECRET_SALT'))
             recipients = [email]
@@ -93,8 +146,8 @@ def register():
             mail.send(msg)
         except Exception as err:
             print("%s" % err)
-            return json.dumps(checker.message)
-    return json.dumps(checker.message)
+            return json.dumps(toreturn), 400
+    return json.dumps(toreturn)
 
 @app.route("/emailconfirm/<token>")
 def email_confirm(token):
@@ -136,7 +189,16 @@ def email_confirm(token):
 
 @app.route("/login", methods = ['POST'])
 def login():
+
+    toreturn = {
+        "success": False,
+        "status": "OTHERFAILURES" # BADINPUT, INCOOLDOWN, NOTVERIFIED, GOOD, OTHERFAILURES
+    }
+    
     client_input = request.json
+    if not client_input:
+        return json.dumps(toreturn), 400
+
     if CLIENT_PLAYER_ID in client_input:
         playerid = client_input[CLIENT_PLAYER_ID]
     else:
@@ -152,12 +214,6 @@ def login():
 
     # hash password
     password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
-
-    # return a protobuf message
-    toreturn = {
-        "success": False,
-        "status": "OTHERFAILURES" # BADINPUT, INCOOLDOWN, NOTVERIFIED, GOOD, OTHERFAILURES
-    }
 
     # call DBman to check
     try:
