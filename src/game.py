@@ -438,17 +438,27 @@ class Game:
 		base_order = Order(len(self.orders) + 1, item, on_expire=None)
 		self.orders.append(QueuedOrder(base_order, partial(self.send_order, self.sio, base_order), 3))
 
+	def clear_orders(self):
+		for queued_order in self.orders:
+			queued_order.order.cancel()
+		self.orders = []
+
+	def clear_and_stop_orders(self):
+		self.clear_orders()
+		if self.order_timer:
+			self.order_timer.cancel()
+
+	def finish(self):
+		self.state = GameState.FINISHED
+		self.clear_and_stop_orders()
+
 	def remove_player(self, player_id):
 		if self.players[player_id]:
 			loc = self.players[player_id].loc
 			self.map.remove_entity(loc)
 			del self.players[player_id]
 			if len(self.players) == 0:
-				self.order_timer.cancel()
-				for queued_order in self.orders:
-					queued_order.order.cancel()
-				self.state = GameState.FINISHED
-		
+				self.finish()
 
 	def __init_map(self, player_ids, entities):
 		i = 0
@@ -526,6 +536,8 @@ class Game:
 			old_num_players = len(self.players)
 			self.players[player_id] = Player(player_id, self.starting_locs[old_num_players], self, old_num_players)
 			self.map.add_entity(self.players[player_id])
+			return True
+		return False
 
 	def valid_player_update(self, player_id, key):
 		player = self.players[player_id]

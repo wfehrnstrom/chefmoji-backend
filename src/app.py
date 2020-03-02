@@ -331,7 +331,10 @@ def join_game_with_id(game_id, player_id, session_key):
         print("Player: " + player_id + " joined the room: " + game_id + " !")
         # if the player is already in the game, this is a no-op.
         if not game_sessions[game_id][1].has_player(player_id):
-            game_sessions[game_id][1].add_player(player_id)
+            successful_add = game_sessions[game_id][1].add_player(player_id)
+            if not successful_add:
+                socketio.emit("game-at-capacity")
+                return
         join_room(game_id)
         socketio.emit("join-confirm", game_id)
         if game_sessions[game_id][1].in_play():
