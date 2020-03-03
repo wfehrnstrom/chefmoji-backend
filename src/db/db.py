@@ -167,8 +167,6 @@ class DBman:
         else:
             return False
 
-
-
     def check_login_info(self, player_id, password, totp, message):
         message["success"] = False
         print(player_id)
