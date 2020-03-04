@@ -2,7 +2,7 @@ from flask import Flask, flash, url_for, redirect, send_from_directory, request,
 from flask_socketio import SocketIO, join_room, leave_room, rooms
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
-from utils import rand_id, player_in_game, authd, eprint, player_owns_game
+from utils import rand_id, player_in_game, authd, eprint, player_owns_game, is_totp_valid, is_playerid_valid
 import os
 import argparse
 from signup_checker import signup_checker
@@ -19,6 +19,7 @@ from game import Game, OrderItem, GameState
 from enum import Enum
 import json
 from threading import Timer
+from validate_email import validate_email
 
 load_dotenv(find_dotenv())
 
@@ -96,17 +97,26 @@ def forget():
 
     try:
         if(forgotwhat == 'playerid'):
+            # validate email
+            if not validate_email(email):
+                return json.dumps(toreturn)
+
             playerid = db.get_player_id(email)
             if playerid:
                 send_email('Chefmoji: Forgot player_id', f'This is your player id: {playerid}', [email])
                 toreturn["success"] = True
         if(forgotwhat == 'password'):
+            # validate email and totp
+            if not (validate_email(email) and is_totp_valid(totp)):
+                return json.dumps(toreturn)
+
             if db.email_exists_in_db(email) and db.check_totp(email, totp):
                 password = db.set_temp_pwd(email)
                 send_email('Chefmoji: Forgot password', f'This is your new password: {password}', [email])
                 toreturn["success"] = True
     except Exception as err:
-        json.dumps(toreturn)
+        print("%s" % err)
+        return json.dumps(toreturn)
 
     return json.dumps(toreturn)
 
@@ -127,8 +137,15 @@ def register():
     password = client_input[CLIENT_PASSWORD]
     email = client_input[CLIENT_EMAIL]
 
-    # Hash the password again using sha3
-    password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
+
+    try:
+        if not(is_playerid_valid(playerid) and validate_email(email)):
+            return json.dumps(toreturn), 400
+        # Hash the password again using sha3
+        password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
+    except Exception as err:
+        print("%s" % err)
+        return json.dumps(toreturn), 400
 
     # Validate the email and playerid
     checker = signup_checker(email, playerid)
@@ -201,7 +218,7 @@ def login():
         "success": False,
         "status": "OTHERFAILURES" # BADINPUT, INCOOLDOWN, NOTVERIFIED, GOOD, OTHERFAILURES
     }
-    
+
     client_input = request.json
     if not client_input:
         return json.dumps(toreturn), 400
@@ -219,8 +236,16 @@ def login():
     else:
         totp = ''
 
-    # hash password
-    password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
+    try:
+        if not(is_playerid_valid(playerid) and is_totp_valid(totp)):
+            toreturn["status"] = "BADINPUT"
+            return json.dumps(toreturn), 400
+
+        # hash password
+        password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
+    except Exception as err:
+        print("%s" % err)
+        return json.dumps(toreturn), 400
 
     # call DBman to check
     try:
