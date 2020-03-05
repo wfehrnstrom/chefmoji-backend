@@ -353,6 +353,8 @@ class PlatingStation:
 
 	def add_item(self, item):
 		if len(self.slots) < 6:
+			if item.plated:
+				return False
 			self.slots.append(item)
 			return True
 		else:
@@ -444,9 +446,10 @@ class Game:
 			self.map.remove_entity(loc)
 			del self.players[player_id]
 			if len(self.players) == 0:
-				self.order_timer.cancel()
-				for queued_order in self.orders:
-					queued_order.order.cancel()
+				if self.state == GameState.PLAYING:
+					self.order_timer.cancel()
+					for queued_order in self.orders:
+						queued_order.order.cancel()
 				self.state = GameState.FINISHED
 		
 
@@ -681,6 +684,8 @@ class OrderItem(Enum):
 		]
 		assert len(list(OrderItem)) == len(recipes)
 		return recipes[self.value-1]
+	def needs_to_be_chopped(self):
+		return False
 
 	def needs_to_be_cooked(self):
 		#reps = ['🌭', '🍕', '🧇', '🍣', '🍳', '🥙', '🥞', '🍜', '🍲', '🍱', '🌮', '🥪', '🍔', '🌯', '🍛']

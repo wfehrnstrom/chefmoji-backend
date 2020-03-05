@@ -43,8 +43,8 @@ CLIENT_EMAIL='email'
 
 # TODO
 # Don't let player log in again if they are already logged in somewhere else
-# If a client disconnects, remove them from the games they were in immediately
-# Delete inactive games immediately
+# If a client disconnects, remove them from the games they were in immediately - DONE
+# Delete inactive games immediately - DONE
 # Check if game join code is valid before redirecting player to lobby
 
 app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/data')
@@ -222,6 +222,14 @@ def login():
     # hash password
     password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
 
+    for p_id in player_ids.values():
+        if p_id == playerid:
+            eprint(json.dumps(toreturn))
+            toreturn[SUCCESS] = False
+            toreturn["status"] = "OTHERFAILURES"
+            print('Player logged in somewhere else!')
+            return json.dumps(toreturn), 400
+
     # call DBman to check
     try:
         toreturn = db.check_login_info(playerid, password, totp, toreturn)
@@ -314,11 +322,17 @@ def handle_disconnect():
     print('Client disconnected', player_id)
     for game_id in game_sessions.keys():
         if player_in_game(player_id, game_sessions, game_id):
+            print('Player is in game', game_id)
             game_sessions[game_id][1].remove_player(player_id)
             break
     if game_sessions[game_id][1].state == GameState.FINISHED:
         del game_sessions[game_id]
     broadcast_game(socketio, game_id, pb=True)
+    for key, p_id in player_ids.items():
+        if p_id == player_id:
+            del player_ids[key]
+            print('Removed,', player_id, 'from player_ids')
+            break
 
 def broadcast_game(sio, g_id, pb=False):
     if g_id in game_sessions:
@@ -360,7 +374,7 @@ def join_game_with_id(game_id, player_id, session_key):
 
 PLAYER_TIMEOUT = 60.0
 if DEBUG:
-    PLAYER_TIMEOUT = 15.0
+    PLAYER_TIMEOUT = 60.0
 
 @socketio.on('play')
 def start_game(owner_session_key=None, game_id=None):
