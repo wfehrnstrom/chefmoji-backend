@@ -280,7 +280,7 @@ def check_auth():
 
 @app.route("/create-game", methods=["POST"])
 def create_game():
-    print("---------ATTEMPTING TO CREATE GAME------")
+    logging.info("---------ATTEMPTING TO CREATE GAME------")
     resp = {
         "success": False,
         "reason": "",
@@ -318,7 +318,7 @@ def remove_player(player_id, game_id=None):
             del player_timers[player_id]
         game_sessions[game_id][1].remove_player(player_id)
         if game_sessions[game_id][1].state == GameState.FINISHED:
-            logging.info("Deleting game with ID: ", game_id)
+            logging.info(f"Deleting game with ID: {0}", game_id)
             del game_sessions[game_id]
         else:
             broadcast_game(socketio, game_id, pb=True)
@@ -330,13 +330,13 @@ def handle_connect():
 @socketio.on('player-id')
 def store_player_id(player_id):
     socket_to_player[request.sid] = player_id
-    logging.info('Socket ID', request.sid, 'contains', player_id)
+    logging.info('Socket ID %(sid)s contains %(player_id)s'%{'sid':request.sid, 'player_id': player_id})
 
 @socketio.on('disconnect')
 def handle_disconnect():
     logging.info('-----SOCKETIO CONNECTION DISCONNECTED-----')
     player_id = socket_to_player[request.sid]
-    logging.info('Client disconnected: ', player_id)
+    logging.info(f'Client disconnected: {0}', player_id)
     remove_player(player_id)
 
 def broadcast_game(sio, g_id, pb=False):
