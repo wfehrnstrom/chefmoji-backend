@@ -385,6 +385,8 @@ def join_game_with_id(game_id, player_id, session_key):
             broadcast_game(socketio, game_id, pb=True)
         else:
             get_game_players(game_id, player_id, session_key)
+    else:
+        socketio.emit("join-confirm", "")
 
 PLAYER_TIMEOUT = 60.0
 if DEBUG:
