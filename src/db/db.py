@@ -15,16 +15,20 @@ class DBValueError(ValueError):
     pass
 
 class DBman:
-    def __init__(self):
+    def __init__(self, logging=None):
         if self.db_credentials_found():
-            self.db = mysql.connect(
-                host = os.getenv("DB_HOSTNAME"),
-                user = os.getenv("DB_USERNAME"),
-                passwd = os.getenv("DB_PASSWORD"),
-                database = os.getenv("DB_NAME")
-            )
-            self.cursor = self.db.cursor(buffered=True)
-            self.tbl_user = 'tbl_user'
+            try:
+                self.db = mysql.connect(
+                    host = os.getenv("DB_HOSTNAME"),
+                    user = os.getenv("DB_USERNAME"),
+                    passwd = os.getenv("DB_PASSWORD"),
+                    database = os.getenv("DB_NAME")
+                )
+                self.cursor = self.db.cursor(buffered=True)
+                self.tbl_user = 'tbl_user'
+            except mysql.errors.InterfaceError:
+                if logging:
+                    logging.error("Unable to connect to database")
         else:
             raise DBValueError("Database credentials not set or table name invalid.")
 

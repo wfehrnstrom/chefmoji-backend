@@ -420,9 +420,7 @@ class Game:
 		self.points = 0
 		self.orders = []
 		self.stove = Stove(session_id)
-		self.plating_station = PlatingStation(session_id)		
-		assert self.map.valid()
-		assert len(self.players) == 1
+		self.plating_station = PlatingStation(session_id)
 
 	def start_orders(self):
 		self.generateOrder()
@@ -572,7 +570,6 @@ class Game:
 			return False
 
 	def update(self, player_id, key):
-		# assert self.valid_player_update(player_id, key)
 		if not self.in_play():
 			# in this case, update is a no-op
 			return

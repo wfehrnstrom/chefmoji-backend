@@ -23,7 +23,6 @@ def rand_id(length = 8, allow_spec_chars=True):
         # System random is more cryptographically secure than simply random.random()
         rand_i = random.SystemRandom().randint(0, len(allowed)-1)
         r_id = r_id + allowed[rand_i]
-    assert len(r_id) == length
     return r_id
 
 def player_in_game(player_id, game_sessions, game_id):

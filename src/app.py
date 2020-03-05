@@ -84,7 +84,7 @@ def send_email(subject, body, recipients):
 
 @app.route("/forget", methods = ['POST'])
 def forget():
-    db = DBman()
+    db = DBman(logging)
     toreturn = {
         "success": False
     }
@@ -118,7 +118,7 @@ def forget():
 
 @app.route("/register", methods = ['POST'])
 def register():
-    db = DBman()
+    db = DBman(logging)
     toreturn = {
         "success": False,
         "email": "OTHERFAILURES",
@@ -165,7 +165,7 @@ def register():
 
 @app.route("/emailconfirm/<token>")
 def email_confirm(token):
-    db = DBman()
+    db = DBman(logging)
     # return a protobuf message
     toreturn = {
         "success": False,
@@ -204,7 +204,7 @@ def email_confirm(token):
 
 @app.route("/login", methods = ['POST'])
 def login():
-    db = DBman()
+    db = DBman(logging)
     toreturn = {
         "success": False,
         "status": "OTHERFAILURES" # BADINPUT, INCOOLDOWN, NOTVERIFIED, GOOD, OTHERFAILURES
@@ -254,7 +254,7 @@ def login():
 
 def make_new_session(owner_player_id):
     new_game_id = rand_id(allow_spec_chars=False)
-    game_sessions[new_game_id] = (owner_player_id, Game(socketio, new_game_id, [owner_player_id]))
+    game_sessions[new_game_id] = (owner_player_id, Game(socketio, new_game_id))
     return new_game_id
 
 SUCCESS_CODE = 1
@@ -318,7 +318,7 @@ def remove_player(player_id, game_id=None):
             del player_timers[player_id]
         game_sessions[game_id][1].remove_player(player_id)
         if game_sessions[game_id][1].state == GameState.FINISHED:
-            logging.info(f"Deleting game with ID: {0}", game_id)
+            logging.info("Deleting game with ID: %s", game_id)
             del game_sessions[game_id]
         else:
             broadcast_game(socketio, game_id, pb=True)
@@ -330,13 +330,13 @@ def handle_connect():
 @socketio.on('player-id')
 def store_player_id(player_id):
     socket_to_player[request.sid] = player_id
-    logging.info('Socket ID %(sid)s contains %(player_id)s'%{'sid':request.sid, 'player_id': player_id})
+    logging.info('Socket ID %s corresponds to %s', request.sid, player_id)
 
 @socketio.on('disconnect')
 def handle_disconnect():
     logging.info('-----SOCKETIO CONNECTION DISCONNECTED-----')
     player_id = socket_to_player[request.sid]
-    logging.info(f'Client disconnected: {0}', player_id)
+    logging.info('Client disconnected: %s', player_id)
     remove_player(player_id)
 
 def broadcast_game(sio, g_id, pb=False):
@@ -365,19 +365,20 @@ def join_game_with_id(game_id, player_id, session_key):
     # TODO: join validation scheme: check whitelists or blacklists, if any.
     game_id, player_id, session_key = str(game_id), str(player_id), str(session_key)
     if session_key in player_ids and player_ids[session_key] == player_id and game_id in game_sessions:
-        logging.info("Player: " + player_id + " joined the room: " + game_id + " !")
         # if the player is already in the game, this is a no-op.
         if not game_sessions[game_id][1].has_player(player_id):
             successful_add = game_sessions[game_id][1].add_player(player_id)
             if not successful_add:
+                logging.info("Player: %s attempted to join the room: %s but it was at capacity", player_id, game_id)
                 socketio.emit("game-at-capacity")
                 return
-        join_room(game_id)
-        socketio.emit("join-confirm", game_id)
-        if game_sessions[game_id][1].in_play():
-            broadcast_game(socketio, game_id, pb=True)
-        else:
-            get_game_players(game_id, player_id, session_key)
+            logging.info("Player: %s joined the room: %s", player_id, game_id)
+            join_room(game_id)
+            socketio.emit("join-confirm", game_id)
+            if game_sessions[game_id][1].in_play():
+                broadcast_game(socketio, game_id, pb=True)
+            else:
+                get_game_players(game_id, player_id, session_key)
 
 PLAYER_TIMEOUT = 60.0
 if DEBUG:
