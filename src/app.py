@@ -91,31 +91,32 @@ def forget():
     if 'forgotwhat' in client_input:
         forgotwhat = client_input['forgotwhat']
     if 'email' in client_input:
-        email = client_input['email']
+        tosendemail = client_input['email']
     if 'mfakey' in client_input:
         totp = client_input['mfakey']
     if 'password' in client_input:
         password = client_input['password']
 
     try:
+        email = sha3.sha3_256(tosendemail.encode(ENCODING)).hexdigest()
         if(forgotwhat == 'playerid'):
             # validate email
-            if not validate_email(email):
+            if not validate_email(tosendemail):
                 return json.dumps(toreturn)
             password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
 
             playerid = db.get_player_id(email, password)
             if playerid:
-                send_email('Chefmoji: Forgot player_id', f'This is your player id: {playerid}', [email])
+                send_email('Chefmoji: Forgot player_id', f'This is your player id: {playerid}', [tosendemail])
                 toreturn["success"] = True
         if(forgotwhat == 'password'):
             # validate email and totp
-            if not (validate_email(email) and is_totp_valid(totp)):
+            if not (validate_email(tosendemail) and is_totp_valid(totp)):
                 return json.dumps(toreturn)
 
             if db.email_exists_in_db(email) and db.check_totp(email, totp):
                 password = db.set_temp_pwd(email)
-                send_email('Chefmoji: Forgot password', f'This is your new password: {password}', [email])
+                send_email('Chefmoji: Forgot password', f'This is your new password: {password}', [tosendemail])
                 toreturn["success"] = True
     except Exception as err:
         print("%s" % err)
@@ -138,14 +139,15 @@ def register():
 
     playerid = client_input[CLIENT_PLAYER_ID]
     password = client_input[CLIENT_PASSWORD]
-    email = client_input[CLIENT_EMAIL]
+    tosendemail = client_input[CLIENT_EMAIL]
 
 
     try:
-        if not(is_playerid_valid(playerid) and validate_email(email)):
+        if not(is_playerid_valid(playerid) and validate_email(tosendemail)):
             return json.dumps(toreturn), 400
         # Hash the password again using sha3
         password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
+        email = sha3.sha3_256(tosendemail.encode(ENCODING)).hexdigest()
     except Exception as err:
         print("%s" % err)
         return json.dumps(toreturn), 400
@@ -166,7 +168,7 @@ def register():
             return json.dumps(toreturn), 400
         try:
             token = generate_confirmation_token(email, os.getenv('SECRET_KEY'), os.getenv('SECRET_SALT'))
-            recipients = [email]
+            recipients = [tosendemail]
             msg = Message('Hello, I am The chefmoji👨‍🍳👩‍🍳', sender = os.getenv('MAIL_USERNAME'),\
                     recipients = recipients)
             msg.body = url_for('email_confirm', token = token, _external=True)
