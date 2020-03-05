@@ -94,14 +94,17 @@ def forget():
         email = client_input['email']
     if 'mfakey' in client_input:
         totp = client_input['mfakey']
+    if 'password' in client_input:
+        password = client_input['password']
 
     try:
         if(forgotwhat == 'playerid'):
             # validate email
             if not validate_email(email):
                 return json.dumps(toreturn)
+            password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
 
-            playerid = db.get_player_id(email)
+            playerid = db.get_player_id(email, password)
             if playerid:
                 send_email('Chefmoji: Forgot player_id', f'This is your player id: {playerid}', [email])
                 toreturn["success"] = True
