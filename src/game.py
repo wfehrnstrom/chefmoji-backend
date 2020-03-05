@@ -353,6 +353,8 @@ class PlatingStation:
 
 	def add_item(self, item):
 		if len(self.slots) < 6:
+			if item.plated:
+				return False
 			self.slots.append(item)
 			return True
 		else:
@@ -690,6 +692,8 @@ class OrderItem(Enum):
 		]
 		assert len(list(OrderItem)) == len(recipes)
 		return recipes[self.value-1]
+	def needs_to_be_chopped(self):
+		return False
 
 	def needs_to_be_cooked(self):
 		#reps = ['🌭', '🍕', '🧇', '🍣', '🍳', '🥙', '🥞', '🍜', '🍲', '🍱', '🌮', '🥪', '🍔', '🌯', '🍛']
