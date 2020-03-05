@@ -255,13 +255,13 @@ class DBman:
         else:
             return True
 
-    def get_player_id(self, email):
+    def get_player_id(self, email, password):
         query = f"\
             SELECT player_id\
               FROM {self.tbl_user}\
-             WHERE email=%(email)s"
+             WHERE email=%(email)s AND password=%(password)s"
 
-        params = {'email': email}
+        params = {'email': email, 'password':password}
         self.db_read_query(query, params)
         result = self.cursor.fetchone()
         if result:

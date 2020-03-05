@@ -54,3 +54,12 @@ def load_env_safe(path):
         eprint('The current scripts are being executed from: ')
         eprint(os.getcwd())
         raise FileNotFoundError('.env file was not found, and so environment variables cannot be loaded')
+
+# input validation
+def is_totp_valid(totp):
+    return len(totp) == 6 and totp.isdigit()
+
+def is_playerid_valid(playerid):
+    length = len(playerid) >= 6 and len(playerid) <= 20
+    profanity = not((playerid.find('fuck') > -1) or (playerid.find('shit') > -1) or (playerid.find('whore') > -1) or (playerid.find('bitch') > -1) or (playerid.find('asshole') > -1))
+    return length and profanity
