@@ -2,7 +2,7 @@ from flask import Flask, flash, url_for, redirect, send_from_directory, request,
 from flask_socketio import SocketIO, join_room, leave_room, rooms
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
-from utils import rand_id, player_in_game, authd, eprint, player_owns_game
+from utils import rand_id, player_in_game, authd, eprint, player_owns_game, game_with_player
 import os
 import argparse
 from signup_checker import signup_checker
@@ -18,6 +18,7 @@ from db.db import DBman
 from game import Game, OrderItem, GameState
 from enum import Enum
 import json
+import logging
 from threading import Timer
 
 load_dotenv(find_dotenv())
@@ -30,6 +31,12 @@ if DEBUG:
     HOSTNAME='http://localhost'
     PORT='8080'
     ADDR=HOSTNAME+':'+PORT
+
+# INIT LOGGING
+if not DEBUG:
+    logging.basicConfig(filename='sio.log', format='%(levelname)s: %(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.WARNING)
+else:
+    logging.basicConfig(format='%(levelname)s: %(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.DEBUG)
 
 # KEY CONSTANTS
 KEY='key'
@@ -57,7 +64,6 @@ app.config['MAIL_DEFAULT_SENDER']=os.getenv('MAIL_DEFAULT_SENDER')
 app.config['MAIL_USERNAME']=os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD']=os.getenv('MAIL_PASSWORD')
 
-db = DBman()
 mail = Mail(app)
 
 socketio = SocketIO(app, cors_allowed_origins=ADDR, logger=DEBUG, engineio_logger=DEBUG)
@@ -78,7 +84,7 @@ def send_email(subject, body, recipients):
 
 @app.route("/forget", methods = ['POST'])
 def forget():
-
+    db = DBman()
     toreturn = {
         "success": False
     }
@@ -105,13 +111,14 @@ def forget():
                 password = db.set_temp_pwd(email)
                 send_email('Chefmoji: Forgot password', f'This is your new password: {password}', [email])
                 toreturn["success"] = True
-    except Exception as err:
+    except Exception:
         json.dumps(toreturn)
 
     return json.dumps(toreturn)
 
 @app.route("/register", methods = ['POST'])
 def register():
+    db = DBman()
     toreturn = {
         "success": False,
         "email": "OTHERFAILURES",
@@ -158,6 +165,7 @@ def register():
 
 @app.route("/emailconfirm/<token>")
 def email_confirm(token):
+    db = DBman()
     # return a protobuf message
     toreturn = {
         "success": False,
@@ -196,7 +204,7 @@ def email_confirm(token):
 
 @app.route("/login", methods = ['POST'])
 def login():
-
+    db = DBman()
     toreturn = {
         "success": False,
         "status": "OTHERFAILURES" # BADINPUT, INCOOLDOWN, NOTVERIFIED, GOOD, OTHERFAILURES
@@ -298,27 +306,38 @@ def create_game():
 
 ######################################## SOCKETIO ##################################################
 
+@socketio.on_error_default
+def handle_error_default(e):
+    logging.error(e)
+
+def remove_player(player_id, game_id=None):
+    if not game_id:
+        game_id = game_with_player(player_id, game_sessions)
+    if game_id and player_id and player_in_game(player_id, game_sessions, game_id):
+        if player_id in player_timers:
+            del player_timers[player_id]
+        game_sessions[game_id][1].remove_player(player_id)
+        if game_sessions[game_id][1].state == GameState.FINISHED:
+            logging.info("Deleting game with ID: ", game_id)
+            del game_sessions[game_id]
+        else:
+            broadcast_game(socketio, game_id, pb=True)
+
 @socketio.on('connect')
 def handle_connect():
-    print('-----SOCKETIO CONNECTION ESTABLISHED-----')
+    logging.info('-----SOCKETIO CONNECTION ESTABLISHED-----')
 
 @socketio.on('player-id')
 def store_player_id(player_id):
     socket_to_player[request.sid] = player_id
-    print('Socket ID', request.sid, 'contains', player_id)
+    logging.info('Socket ID', request.sid, 'contains', player_id)
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    print('-----SOCKETIO CONNECTION DISCONNECTED-----')
+    logging.info('-----SOCKETIO CONNECTION DISCONNECTED-----')
     player_id = socket_to_player[request.sid]
-    print('Client disconnected', player_id)
-    for game_id in game_sessions.keys():
-        if player_in_game(player_id, game_sessions, game_id):
-            game_sessions[game_id][1].remove_player(player_id)
-            break
-    if game_sessions[game_id][1].state == GameState.FINISHED:
-        del game_sessions[game_id]
-    broadcast_game(socketio, game_id, pb=True)
+    logging.info('Client disconnected: ', player_id)
+    remove_player(player_id)
 
 def broadcast_game(sio, g_id, pb=False):
     if g_id in game_sessions:
@@ -341,13 +360,12 @@ def get_game_players(game_id, player_id, session_key):
             socketio.emit('get-game-players', (False, game_sessions[game_id][0] == player_id, \
                 game_sessions[game_id][0], players), room=game_id); # game is not in play
 
-#TODO: add socket emit "join-failed" if game is already in play
 @socketio.on('join-game-with-id')
 def join_game_with_id(game_id, player_id, session_key):
     # TODO: join validation scheme: check whitelists or blacklists, if any.
     game_id, player_id, session_key = str(game_id), str(player_id), str(session_key)
     if session_key in player_ids and player_ids[session_key] == player_id and game_id in game_sessions:
-        print("Player: " + player_id + " joined the room: " + game_id + " !")
+        logging.info("Player: " + player_id + " joined the room: " + game_id + " !")
         # if the player is already in the game, this is a no-op.
         if not game_sessions[game_id][1].has_player(player_id):
             successful_add = game_sessions[game_id][1].add_player(player_id)
@@ -379,12 +397,8 @@ def start_game(owner_session_key=None, game_id=None):
             broadcast_game(socketio, game_id, pb=True)
 
 def remove_inactive_player(player_id, game_id):
-    socketio.emit('timedout', {'player': player_id}, room=game_id)
-    del player_timers[player_id]
-    game_sessions[game_id][1].remove_player(player_id)
-    if game_sessions[game_id][1].state == GameState.FINISHED:
-        del game_sessions[game_id]
-    broadcast_game(socketio, game_id, pb=True)
+    socketio.emit('timedout', {'player': player_id})
+    remove_player(player_id, game_id)
 
 @socketio.on('keypress')
 def handle_player_keypress(msg=None, session_key=None, game_id=None):
