@@ -453,7 +453,7 @@ class Game:
 		self.clear_and_stop_orders()
 
 	def remove_player(self, player_id):
-		if self.players[player_id]:
+		if player_id in self.players:
 			loc = self.players[player_id].loc
 			self.map.remove_entity(loc)
 			del self.players[player_id]

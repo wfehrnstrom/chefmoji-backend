@@ -352,15 +352,15 @@ def remove_player(player_id, game_id=None):
         if player_id in player_timers:
             del player_timers[player_id]
         game_sessions[game_id][1].remove_player(player_id)
-        for key, p_id in player_ids.items():
-            if p_id == player_id:
-                del player_ids[key]
-                logging.info('Removed %s from player_ids', player_id)
         if game_sessions[game_id][1].state == GameState.FINISHED:
             logging.info("Deleting game with ID: %s", game_id)
             del game_sessions[game_id]
         else:
             broadcast_game(socketio, game_id, pb=True)
+    for key, p_id in player_ids.items():
+        if p_id == player_id:
+            del player_ids[key]
+            logging.info('Removed %s from player_ids', player_id)
 
 @socketio.on('connect')
 def handle_connect():
@@ -375,25 +375,8 @@ def store_player_id(player_id):
 def handle_disconnect():
     logging.info('-----SOCKETIO CONNECTION DISCONNECTED-----')
     player_id = socket_to_player[request.sid]
-<<<<<<< HEAD
     logging.info('Client disconnected: %s', player_id)
     remove_player(player_id)
-=======
-    print('Client disconnected', player_id)
-    for game_id in game_sessions.keys():
-        if player_in_game(player_id, game_sessions, game_id):
-            print('Player is in game', game_id)
-            game_sessions[game_id][1].remove_player(player_id)
-            break
-    if game_sessions[game_id][1].state == GameState.FINISHED:
-        del game_sessions[game_id]
-    broadcast_game(socketio, game_id, pb=True)
-    for key, p_id in player_ids.items():
-        if p_id == player_id:
-            del player_ids[key]
-            print('Removed,', player_id, 'from player_ids')
-            break
->>>>>>> sarthak/player-handling
 
 def broadcast_game(sio, g_id, pb=False):
     if g_id in game_sessions:
