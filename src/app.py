@@ -143,7 +143,7 @@ def register():
             checker.message[CLIENT_EMAIL] = "OTHERFAILURES"
             checker.message[CLIENT_PLAYER_ID] = "OTHERFAILURES"
             toreturn = checker.message
-            return json.dumps(toreturn), 400
+            return json.dumps(toreturn), 502
         try:
             token = generate_confirmation_token(email, os.getenv('SECRET_KEY'), os.getenv('SECRET_SALT'))
             recipients = [email]
@@ -153,8 +153,11 @@ def register():
             mail.send(msg)
         except Exception as err:
             print("%s" % err)
-            return json.dumps(toreturn), 400
-    return json.dumps(toreturn)
+            return json.dumps(toreturn), 503
+        return json.dumps(toreturn), 200
+    else:
+        return json.dumps(toreturn), 422
+
 
 @app.route("/emailconfirm/<token>")
 def email_confirm(token):
@@ -201,7 +204,7 @@ def login():
         "success": False,
         "status": "OTHERFAILURES" # BADINPUT, INCOOLDOWN, NOTVERIFIED, GOOD, OTHERFAILURES
     }
-    
+
     client_input = request.json
     if not client_input:
         return json.dumps(toreturn), 400
