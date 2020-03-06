@@ -15,16 +15,20 @@ class DBValueError(ValueError):
     pass
 
 class DBman:
-    def __init__(self):
+    def __init__(self, logging=None):
         if self.db_credentials_found():
-            self.db = mysql.connect(
-                host = os.getenv("DB_HOSTNAME"),
-                user = os.getenv("DB_USERNAME"),
-                passwd = os.getenv("DB_PASSWORD"),
-                database = os.getenv("DB_NAME")
-            )
-            self.cursor = self.db.cursor(buffered=True)
-            self.tbl_user = 'tbl_user'
+            try:
+                self.db = mysql.connect(
+                    host = os.getenv("DB_HOSTNAME"),
+                    user = os.getenv("DB_USERNAME"),
+                    passwd = os.getenv("DB_PASSWORD"),
+                    database = os.getenv("DB_NAME")
+                )
+                self.cursor = self.db.cursor(buffered=True)
+                self.tbl_user = 'tbl_user'
+            except mysql.errors.InterfaceError:
+                if logging:
+                    logging.error("Unable to connect to database")
         else:
             raise DBValueError("Database credentials not set or table name invalid.")
 
@@ -167,8 +171,6 @@ class DBman:
         else:
             return False
 
-
-
     def check_login_info(self, player_id, password, totp, message):
         message["success"] = False
         print(player_id)
@@ -255,13 +257,13 @@ class DBman:
         else:
             return True
 
-    def get_player_id(self, email):
+    def get_player_id(self, email, password):
         query = f"\
             SELECT player_id\
               FROM {self.tbl_user}\
-             WHERE email=%(email)s"
+             WHERE email=%(email)s AND password=%(password)s"
 
-        params = {'email': email}
+        params = {'email': email, 'password':password}
         self.db_read_query(query, params)
         result = self.cursor.fetchone()
         if result:

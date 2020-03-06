@@ -13,3 +13,4 @@ pyotp
 mysql-connector-python
 random-password-generator
 email_validator
+

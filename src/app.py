@@ -2,7 +2,7 @@ from flask import Flask, flash, url_for, redirect, send_from_directory, request,
 from flask_socketio import SocketIO, join_room, leave_room, rooms
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
-from utils import rand_id, player_in_game, authd, eprint, player_owns_game
+from utils import rand_id, player_in_game, authd, eprint, player_owns_game, is_totp_valid, game_with_player, is_playerid_valid
 import os
 import argparse
 from signup_checker import signup_checker
@@ -18,7 +18,9 @@ from db.db import DBman
 from game import Game, OrderItem, GameState
 from enum import Enum
 import json
+import logging
 from threading import Timer
+from validate_email import validate_email
 
 load_dotenv(find_dotenv())
 
@@ -30,6 +32,12 @@ if DEBUG:
     HOSTNAME='http://localhost'
     PORT='8080'
     ADDR=HOSTNAME+':'+PORT
+
+# INIT LOGGING
+if not DEBUG:
+    logging.basicConfig(filename='sio.log', format='%(levelname)s: %(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.WARNING)
+else:
+    logging.basicConfig(format='%(levelname)s: %(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.DEBUG)
 
 # KEY CONSTANTS
 KEY='key'
@@ -43,8 +51,8 @@ CLIENT_EMAIL='email'
 
 # TODO
 # Don't let player log in again if they are already logged in somewhere else
-# If a client disconnects, remove them from the games they were in immediately
-# Delete inactive games immediately
+# If a client disconnects, remove them from the games they were in immediately - DONE
+# Delete inactive games immediately - DONE
 # Check if game join code is valid before redirecting player to lobby
 
 app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/data')
@@ -57,7 +65,6 @@ app.config['MAIL_DEFAULT_SENDER']=os.getenv('MAIL_DEFAULT_SENDER')
 app.config['MAIL_USERNAME']=os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD']=os.getenv('MAIL_PASSWORD')
 
-db = DBman()
 mail = Mail(app)
 
 socketio = SocketIO(app, cors_allowed_origins=ADDR, logger=DEBUG, engineio_logger=DEBUG)
@@ -78,7 +85,7 @@ def send_email(subject, body, recipients):
 
 @app.route("/forget", methods = ['POST'])
 def forget():
-
+    db = DBman(logging)
     toreturn = {
         "success": False
     }
@@ -90,28 +97,41 @@ def forget():
     if 'forgotwhat' in client_input:
         forgotwhat = client_input['forgotwhat']
     if 'email' in client_input:
-        email = client_input['email']
+        tosendemail = client_input['email']
     if 'mfakey' in client_input:
         totp = client_input['mfakey']
+    if 'password' in client_input:
+        password = client_input['password']
 
     try:
+        email = sha3.sha3_256(tosendemail.encode(ENCODING)).hexdigest()
         if(forgotwhat == 'playerid'):
-            playerid = db.get_player_id(email)
+            # validate email
+            if not validate_email(tosendemail):
+                return json.dumps(toreturn)
+            password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
+
+            playerid = db.get_player_id(email, password)
             if playerid:
-                send_email('Chefmoji: Forgot player_id', f'This is your player id: {playerid}', [email])
+                send_email('Chefmoji: Forgot player_id', f'This is your player id: {playerid}', [tosendemail])
                 toreturn["success"] = True
         if(forgotwhat == 'password'):
+            # validate email and totp
+            if not (validate_email(tosendemail) and is_totp_valid(totp)):
+                return json.dumps(toreturn)
+
             if db.email_exists_in_db(email) and db.check_totp(email, totp):
                 password = db.set_temp_pwd(email)
-                send_email('Chefmoji: Forgot password', f'This is your new password: {password}', [email])
+                send_email('Chefmoji: Forgot password', f'This is your new password: {password}', [tosendemail])
                 toreturn["success"] = True
-    except Exception as err:
-        json.dumps(toreturn)
+    except Exception:
+        return json.dumps(toreturn)
 
     return json.dumps(toreturn)
 
 @app.route("/register", methods = ['POST'])
 def register():
+    db = DBman(logging)
     toreturn = {
         "success": False,
         "email": "OTHERFAILURES",
@@ -125,10 +145,18 @@ def register():
 
     playerid = client_input[CLIENT_PLAYER_ID]
     password = client_input[CLIENT_PASSWORD]
-    email = client_input[CLIENT_EMAIL]
+    tosendemail = client_input[CLIENT_EMAIL]
 
-    # Hash the password again using sha3
-    password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
+
+    try:
+        if not(is_playerid_valid(playerid) and validate_email(tosendemail)):
+            return json.dumps(toreturn), 400
+        # Hash the password again using sha3
+        password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
+        email = sha3.sha3_256(tosendemail.encode(ENCODING)).hexdigest()
+    except Exception as err:
+        print("%s" % err)
+        return json.dumps(toreturn), 400
 
     # Validate the email and playerid
     checker = signup_checker(email, playerid)
@@ -146,7 +174,7 @@ def register():
             return json.dumps(toreturn), 502
         try:
             token = generate_confirmation_token(email, os.getenv('SECRET_KEY'), os.getenv('SECRET_SALT'))
-            recipients = [email]
+            recipients = [tosendemail]
             msg = Message('Hello, I am The chefmoji👨‍🍳👩‍🍳', sender = os.getenv('MAIL_USERNAME'),\
                     recipients = recipients)
             msg.body = url_for('email_confirm', token = token, _external=True)
@@ -161,6 +189,7 @@ def register():
 
 @app.route("/emailconfirm/<token>")
 def email_confirm(token):
+    db = DBman(logging)
     # return a protobuf message
     toreturn = {
         "success": False,
@@ -199,7 +228,7 @@ def email_confirm(token):
 
 @app.route("/login", methods = ['POST'])
 def login():
-
+    db = DBman(logging)
     toreturn = {
         "success": False,
         "status": "OTHERFAILURES" # BADINPUT, INCOOLDOWN, NOTVERIFIED, GOOD, OTHERFAILURES
@@ -222,8 +251,24 @@ def login():
     else:
         totp = ''
 
-    # hash password
-    password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
+    try:
+        if not(is_playerid_valid(playerid) and is_totp_valid(totp)):
+            toreturn["status"] = "BADINPUT"
+            return json.dumps(toreturn), 400
+
+        # hash password
+        password = sha3.sha3_256(password.encode(ENCODING)).hexdigest()
+    except Exception as err:
+        print("%s" % err)
+        return json.dumps(toreturn), 400
+
+    for p_id in player_ids.values():
+        if p_id == playerid:
+            eprint(json.dumps(toreturn))
+            toreturn[SUCCESS] = False
+            toreturn["status"] = "OTHERFAILURES"
+            print('Player logged in somewhere else!')
+            return json.dumps(toreturn), 400
 
     # call DBman to check
     try:
@@ -249,7 +294,7 @@ def login():
 
 def make_new_session(owner_player_id):
     new_game_id = rand_id(allow_spec_chars=False)
-    game_sessions[new_game_id] = (owner_player_id, Game(socketio, new_game_id, [owner_player_id]))
+    game_sessions[new_game_id] = (owner_player_id, Game(socketio, new_game_id))
     return new_game_id
 
 SUCCESS_CODE = 1
@@ -275,7 +320,7 @@ def check_auth():
 
 @app.route("/create-game", methods=["POST"])
 def create_game():
-    print("---------ATTEMPTING TO CREATE GAME------")
+    logging.info("---------ATTEMPTING TO CREATE GAME------")
     resp = {
         "success": False,
         "reason": "",
@@ -301,27 +346,42 @@ def create_game():
 
 ######################################## SOCKETIO ##################################################
 
+@socketio.on_error_default
+def handle_error_default(e):
+    logging.error(e)
+
+def remove_player(player_id, game_id=None):
+    if not game_id:
+        game_id = game_with_player(player_id, game_sessions)
+    if game_id and player_id and player_in_game(player_id, game_sessions, game_id):
+        if player_id in player_timers:
+            del player_timers[player_id]
+        game_sessions[game_id][1].remove_player(player_id)
+        if game_sessions[game_id][1].state == GameState.FINISHED:
+            logging.info("Deleting game with ID: %s", game_id)
+            del game_sessions[game_id]
+        else:
+            broadcast_game(socketio, game_id, pb=True)
+    for key, p_id in player_ids.items():
+        if p_id == player_id:
+            del player_ids[key]
+            logging.info('Removed %s from player_ids', player_id)
+
 @socketio.on('connect')
 def handle_connect():
-    print('-----SOCKETIO CONNECTION ESTABLISHED-----')
+    logging.info('-----SOCKETIO CONNECTION ESTABLISHED-----')
 
 @socketio.on('player-id')
 def store_player_id(player_id):
     socket_to_player[request.sid] = player_id
-    print('Socket ID', request.sid, 'contains', player_id)
+    logging.info('Socket ID %s corresponds to %s', request.sid, player_id)
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    print('-----SOCKETIO CONNECTION DISCONNECTED-----')
+    logging.info('-----SOCKETIO CONNECTION DISCONNECTED-----')
     player_id = socket_to_player[request.sid]
-    print('Client disconnected', player_id)
-    for game_id in game_sessions.keys():
-        if player_in_game(player_id, game_sessions, game_id):
-            game_sessions[game_id][1].remove_player(player_id)
-            break
-    if game_sessions[game_id][1].state == GameState.FINISHED:
-        del game_sessions[game_id]
-    broadcast_game(socketio, game_id, pb=True)
+    logging.info('Client disconnected: %s', player_id)
+    remove_player(player_id)
 
 def broadcast_game(sio, g_id, pb=False):
     if g_id in game_sessions:
@@ -344,47 +404,48 @@ def get_game_players(game_id, player_id, session_key):
             socketio.emit('get-game-players', (False, game_sessions[game_id][0] == player_id, \
                 game_sessions[game_id][0], players), room=game_id); # game is not in play
 
-#TODO: add socket emit "join-failed" if game is already in play
 @socketio.on('join-game-with-id')
 def join_game_with_id(game_id, player_id, session_key):
     # TODO: join validation scheme: check whitelists or blacklists, if any.
     game_id, player_id, session_key = str(game_id), str(player_id), str(session_key)
     if session_key in player_ids and player_ids[session_key] == player_id and game_id in game_sessions:
-        print("Player: " + player_id + " joined the room: " + game_id + " !")
         # if the player is already in the game, this is a no-op.
         if not game_sessions[game_id][1].has_player(player_id):
-            game_sessions[game_id][1].add_player(player_id)
-        join_room(game_id)
-        socketio.emit("join-confirm", game_id)
-        if game_sessions[game_id][1].in_play():
-            broadcast_game(socketio, game_id, pb=True)
-        else:
-            get_game_players(game_id, player_id, session_key)
+            successful_add = game_sessions[game_id][1].add_player(player_id)
+            if not successful_add:
+                logging.info("Player: %s attempted to join the room: %s but it was at capacity", player_id, game_id)
+                socketio.emit("game-at-capacity")
+                return
+            logging.info("Player: %s joined the room: %s", player_id, game_id)
+            join_room(game_id)
+            socketio.emit("join-confirm", game_id)
+            if game_sessions[game_id][1].in_play():
+                broadcast_game(socketio, game_id, pb=True)
+            else:
+                get_game_players(game_id, player_id, session_key)
+    else:
+        socketio.emit("join-confirm", "")
 
 PLAYER_TIMEOUT = 60.0
 if DEBUG:
-    PLAYER_TIMEOUT = 15.0
+    PLAYER_TIMEOUT = 60.0
 
 @socketio.on('play')
 def start_game(owner_session_key=None, game_id=None):
     if owner_session_key and owner_session_key in player_ids and game_id and player_in_game(player_ids[owner_session_key], game_sessions, game_id):
-        # Set game state to playing
-        socketio.emit('game-started', True, room=game_id)
-        for player in game_sessions[game_id][1].players.values():
-            player_timers[player.id] = Timer(PLAYER_TIMEOUT, remove_inactive_player, [player.id, game_id])
-            player_timers[player.id].start()
-
-        game_sessions[game_id][1].play()
-        # Broadcast game start to all connected players
-        broadcast_game(socketio, game_id, pb=True)
+        if game_sessions[game_id][1].state == GameState.QUEUEING:
+            # Set game state to playing
+            socketio.emit('game-started', True, room=game_id)
+            for player in game_sessions[game_id][1].players.values():
+                player_timers[player.id] = Timer(PLAYER_TIMEOUT, remove_inactive_player, [player.id, game_id])
+                player_timers[player.id].start()
+            game_sessions[game_id][1].play()
+            # Broadcast game start to all connected players
+            broadcast_game(socketio, game_id, pb=True)
 
 def remove_inactive_player(player_id, game_id):
-    socketio.emit('timedout', {'player': player_id}, room=game_id)
-    del player_timers[player_id]
-    game_sessions[game_id][1].remove_player(player_id)
-    if game_sessions[game_id][1].state == GameState.FINISHED:
-        del game_sessions[game_id]
-    broadcast_game(socketio, game_id, pb=True)
+    socketio.emit('timedout', {'player': player_id})
+    remove_player(player_id, game_id)
 
 @socketio.on('keypress')
 def handle_player_keypress(msg=None, session_key=None, game_id=None):
