@@ -55,7 +55,7 @@ CLIENT_EMAIL='email'
 # Delete inactive games immediately - DONE
 # Check if game join code is valid before redirecting player to lobby
 
-app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/data')
+app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/chefmoji')
 
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 app.config['MAIL_SERVER']=os.getenv('MAIL_SERVER')
