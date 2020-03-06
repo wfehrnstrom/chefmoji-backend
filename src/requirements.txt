@@ -12,4 +12,5 @@ pysha3
 pyotp
 mysql-connector-python
 random-password-generator
-validate_email
+email_validator
+
