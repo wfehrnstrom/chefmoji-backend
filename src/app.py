@@ -225,7 +225,6 @@ def email_confirm(token):
 
     return render_template('emailconfirm.html', status=toreturn["status"], success=toreturn[SUCCESS], totpkey=toreturn["totpkey"])
     # NOTE: working with flash on the front end - get_flashed_messages() https://pythonprogramming.net/flash-flask-tutorial/
-
 @app.route("/login", methods = ['POST'])
 def login():
     db = DBman(logging)
