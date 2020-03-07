@@ -55,7 +55,7 @@ CLIENT_EMAIL='email'
 # Delete inactive games immediately - DONE
 # Check if game join code is valid before redirecting player to lobby
 
-app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/data')
+app = Flask(__name__, instance_relative_config=True, template_folder='/var/www/chefmoji')
 
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 app.config['MAIL_SERVER']=os.getenv('MAIL_SERVER')
@@ -225,7 +225,6 @@ def email_confirm(token):
 
     return render_template('emailconfirm.html', status=toreturn["status"], success=toreturn[SUCCESS], totpkey=toreturn["totpkey"])
     # NOTE: working with flash on the front end - get_flashed_messages() https://pythonprogramming.net/flash-flask-tutorial/
-
 @app.route("/login", methods = ['POST'])
 def login():
     db = DBman(logging)
