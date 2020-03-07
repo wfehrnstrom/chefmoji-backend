@@ -449,8 +449,9 @@ class Game:
 			self.order_timer.cancel()
 
 	def finish(self):
+		if self.state == GameState.PLAYING:
+			self.clear_and_stop_orders()
 		self.state = GameState.FINISHED
-		self.clear_and_stop_orders()
 
 	def remove_player(self, player_id):
 		if player_id in self.players:
