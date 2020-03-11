@@ -40,10 +40,6 @@ class signup_checker:
     # checks if email is unique
     # checks if email is valid
     def email_checker(self):
-        if("@" in self.email): # validate and get info
-            self.message["email"] = "NOTVALID"
-            return 0
-
         if(db.email_exists_in_db(self.email)):
             self.message["email"] = "NOTUNIQUE"
             return 0
